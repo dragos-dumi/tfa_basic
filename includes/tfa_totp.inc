@@ -49,7 +49,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
       '#required' => TRUE,
       '#attributes' => array('autocomplete' => 'off'),
     );
-
+    $form['actions']['#type'] = 'actions';
     $form['actions']['login'] = array(
       '#type' => 'submit',
       '#value' => t('Verify'),

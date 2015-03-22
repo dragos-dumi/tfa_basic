@@ -46,6 +46,7 @@ class TfaBasicSms extends TfaBasePlugin implements TfaValidationPluginInterface,
       '#required' => TRUE,
       '#description' => t('Enter @length-character code sent to your device.', array('@length' => $this->codeLength)),
     );
+    $form['actions']['#type'] = 'actions';
     // @todo optionally report on when code was sent/delivered.
     $form['actions']['login'] = array(
       '#type' => 'submit',
