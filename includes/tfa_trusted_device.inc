@@ -214,7 +214,7 @@ class TfaTrustedDeviceSetup extends TfaTrustedDevice implements TfaSetupPluginIn
     $time = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30) / (3600 * 24);
     $form['info'] = array(
       '#type' => 'markup',
-      '#markup' => '<p>' . t("Trusted browsers are a method for simplifying log in by avoiding TFA code entry for a set amount of time, !time days from marking a browser as trusted. After !time days, to log in you'll need to enter a TFA code with your username and password during which you can again mark the browser as trusted.", array('!time' => $time)) . '</p>',
+      '#markup' => '<p>' . t("Trusted browsers are a method for simplifying login by avoiding verification code entry for a set amount of time, !time days from marking a browser as trusted. After !time days, to log in you'll need to enter a verification code with your username and password during which you can again mark the browser as trusted.", array('!time' => $time)) . '</p>',
     );
     // Present option to trust this browser if its not currently trusted.
     if (isset($_COOKIE[$this->cookieName]) && ($device_id = $this->trustedDevice($_COOKIE[$this->cookieName])) !== FALSE) {

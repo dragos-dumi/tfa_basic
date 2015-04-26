@@ -1,14 +1,13 @@
 <?php
 
 /**
- * @param $account
- * @return string
+ * TFA Basic account setup overview page.
  */
 function tfa_basic_overview($form, &$form_state, $account) {
 
   $output['info'] = array(
     '#type' => 'markup',
-    '#markup' => '<p>' . t('Two-factor authentication (TFA) provides additional security for your account. With TFA enabled, you log in to the site with a uniquely generated code in addition to your username and password.') . '</p>',
+    '#markup' => '<p>' . t('Two-factor authentication (TFA) provides additional security for your account. With TFA enabled, you log in to the site with a verification code in addition to your username and password.') . '</p>',
   );
   $form_state['storage']['account'] = $account;
   $user_tfa = tfa_basic_get_tfa_data($account);
@@ -27,113 +26,148 @@ function tfa_basic_overview($form, &$form_state, $account) {
     );
   }
 
-  // Application setup.
-  $output['app'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('TFA application'),
-    '#description' => t('Generate TFA codes for log in from a mobile or desktop application.'),
-  );
-  $setup_text = !$enabled ? t('Set up application') : t('Reset application');
-  $output['app']['link'] = array(
-    '#type' => 'markup',
-    '#markup' => l($setup_text, 'user/' . $account->uid . '/security/tfa/app-setup'),
-  );
-
-  // SMS setup.
-  $phone_field = variable_get('tfa_basic_phone_field', '');
-  if ($enabled && $phone_field !== '' && in_array('tfa_basic_sms', variable_get('tfa_fallback_plugins', array()))) {
-    $output['sms'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('SMS fallback'),
-      '#description' => t('Receive TFA code via SMS if you are are unable to use mobile application during log in.'),
-    );
-    $mobile_number = tfa_basic_get_mobile_number($account);
-    if (!empty($user_tfa['data']['sms']) && $mobile_number !== FALSE) {
-      $output['sms']['number'] = array(
-        '#type' => 'markup',
-        '#markup' => '<p>' . t('Optional delivery to @number', array('@number' => tfa_basic_format_number($mobile_number))) . '</p>',
-      );
-    }
-    if (empty($user_tfa['data']['sms'])) {
-      $sms_text = t('Set up SMS delivery');
-    }
-    else {
-      $sms_text = t('Reset SMS delivery');
-    }
-    $output['sms']['link'] = array(
-      '#type' => 'markup',
-      '#markup' => l($sms_text, 'user/' . $account->uid . '/security/tfa/sms-setup'),
-    );
+  // Start with validate plugin setup.
+  if (!$enabled) {
+    $validate_plugin = variable_get('tfa_validate_plugin', '');
+    $output['setup'] = _tfa_basic_plugin_setup_form_overview($validate_plugin, $account, $user_tfa);
   }
+  else {
+    // TOTP setup.
+    $output['app'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_totp', $account, $user_tfa);
+    // SMS setup.
+    $output['sms'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_sms', $account, $user_tfa);
+    // Trusted browsers.
+    $output['trust'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_trusted_device', $account, $user_tfa);
+    // Recovery codes.
+    $output['recovery'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_recovery_code', $account, $user_tfa);
 
-  // Trusted browsers.
-  if ($enabled && in_array('tfa_basic_trusted_device', variable_get('tfa_login_plugins', array()))) {
-    $trusted_device = new TfaTrustedDeviceSetup(array('uid' => $account->uid));
-    $trusted_browsers = array();
-    foreach ($trusted_device->getTrustedDevices() as $device) {
-      $vars = array(
-        '!set' => format_date($device['created']),
-        '@browser' => $device['name'],
-        '!time' => format_date($device['last_used']),
-      );
-      if (empty($device['last_used'])) {
-        $message = t('@browser, set !set', $vars);
-      }
-      else {
-        $message = t('@browser, set !set, last used !time', $vars);
-      }
-      $trusted_browsers[] = $message;
-    }
-    $time = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30) / (3600 * 24);
-    $output['trust'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Trusted browsers'),
-      '#description' => t('Browsers that will not require TFA during log in for !time days from first set.', array('!time' => $time)),
-    );
-    if (!empty($trusted_browsers)) {
-      $output['trust']['list'] = array(
-        '#type' => 'markup',
-        '#markup' => theme('item_list', array('items' => $trusted_browsers)),
-      );
-    }
-    $output['trust']['link'] = array(
-      '#type' => 'markup',
-      '#markup' => l(t('Set trusted browsers'), 'user/' . $account->uid . '/security/tfa/trusted-browsers'),
-    );
-  }
-
-  // Recovery codes.
-  if ($enabled && in_array('tfa_basic_recovery_code', variable_get('tfa_fallback_plugins', array()))) {
-    $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
-    $output['recovery'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Recovery codes'),
-      '#description' => t('Pre-generated, one-time-use codes that allow log in instead of the TFA application code.'),
-    );
-    $recovery_codes = $recovery->getCodes();
-    if (empty($recovery_codes)) {
-      $codes_text = t('Get recovery codes');
-    }
-    else {
-      $output['recovery']['list'] = array(
-        '#type' => 'markup',
-        '#markup' => '<p>' . l(t('View unused recovery codes'), 'user/' . $account->uid . '/security/tfa/recovery-codes-list') . '</p>',
-      );
-      $codes_text = t('Get new recovery codes');
-    }
-    $output['recovery']['link'] = array(
-      '#type' => 'markup',
-      '#markup' => l($codes_text, 'user/' . $account->uid . '/security/tfa/recovery-codes'),
-    );
-  }
-
-  if ($enabled) {
     $output['disable'] = array(
       '#type' => 'markup',
       '#markup' => '<p>' . l(t('Disable TFA'), 'user/' . $account->uid . '/security/tfa/disable') . '</p>',
     );
   }
 
+  return $output;
+}
+
+/**
+ * Get TFA basic setup action links for use on overview page.
+ *
+ * @param string $plugin
+ * @param object $account
+ * @param array $user_tfa
+ *
+ * @return array
+ *   Render array
+ */
+function _tfa_basic_plugin_setup_form_overview($plugin, $account, array $user_tfa) {
+  // No output if the plugin isn't enabled.
+  if ($plugin !== variable_get('tfa_validate_plugin', '') &&
+    !in_array($plugin, variable_get('tfa_fallback_plugins', array())) &&
+    !in_array($plugin, variable_get('tfa_login_plugins', array()))) {
+    return array();
+  }
+  $enabled = isset($user_tfa['status']) && $user_tfa['status'] ? TRUE : FALSE;
+  $output = array();
+  switch ($plugin) {
+    case 'tfa_basic_totp';
+      $output = array(
+        '#type' => 'fieldset',
+        '#title' => t('TFA application'),
+        '#description' => t('Generate verification codes from a mobile or desktop application.'),
+      );
+      $setup_text = !$enabled ? t('Set up application') : t('Reset application');
+      $output['link'] = array(
+        '#type' => 'markup',
+        '#markup' => l($setup_text, 'user/' . $account->uid . '/security/tfa/app-setup'),
+      );
+      break;
+
+    case 'tfa_basic_sms':
+      $output = array(
+        '#type' => 'fieldset',
+        '#title' => t('SMS'),
+        '#description' => t('Receive verification code via SMS.'),
+      );
+      $mobile_number = tfa_basic_get_mobile_number($account);
+      if (!empty($user_tfa['data']['sms']) && $mobile_number !== FALSE) {
+        $output['number'] = array(
+          '#type' => 'markup',
+          '#markup' => '<p>' . t('Deliver to @number', array('@number' => tfa_basic_format_number($mobile_number))) . '</p>',
+        );
+      }
+      if (empty($user_tfa['data']['sms'])) {
+        $sms_text = t('Set up SMS delivery');
+      }
+      else {
+        $sms_text = t('Reset SMS delivery');
+      }
+      $output['link'] = array(
+        '#type' => 'markup',
+        '#markup' => l($sms_text, 'user/' . $account->uid . '/security/tfa/sms-setup'),
+      );
+      break;
+
+    case 'tfa_basic_trusted_device':
+      $trusted_device = new TfaTrustedDeviceSetup(array('uid' => $account->uid));
+      $trusted_browsers = array();
+      foreach ($trusted_device->getTrustedDevices() as $device) {
+        $vars = array(
+          '!set' => format_date($device['created']),
+          '@browser' => $device['name'],
+          '!time' => format_date($device['last_used']),
+        );
+        if (empty($device['last_used'])) {
+          $message = t('@browser, set !set', $vars);
+        }
+        else {
+          $message = t('@browser, set !set, last used !time', $vars);
+        }
+        $trusted_browsers[] = $message;
+      }
+      $time = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30) / (3600 * 24);
+      $output = array(
+        '#type' => 'fieldset',
+        '#title' => t('Trusted browsers'),
+        '#description' => t('Browsers that will not require a verification code during login.', array('!time' => $time)),
+      );
+      if (!empty($trusted_browsers)) {
+        $output['list'] = array(
+          '#type' => 'markup',
+          '#markup' => theme('item_list', array('items' => $trusted_browsers)),
+        );
+      }
+      $output['link'] = array(
+        '#type' => 'markup',
+        '#markup' => l(t('Set trusted browsers'), 'user/' . $account->uid . '/security/tfa/trusted-browsers'),
+      );
+      break;
+
+    case 'tfa_basic_recovery_code':
+      $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
+      $output = array(
+        '#type' => 'fieldset',
+        '#title' => t('Recovery codes'),
+        '#description' => t('Pre-generated, one-time-use codes intended as a fallback should other methods be unavailable.'),
+      );
+      $recovery_codes = $recovery->getCodes();
+      if (empty($recovery_codes)) {
+        $codes_text = t('Get recovery codes');
+      }
+      else {
+        $output['list'] = array(
+          '#type' => 'markup',
+          '#markup' => '<p>' . l(t('View unused recovery codes'), 'user/' . $account->uid . '/security/tfa/recovery-codes-list') . '</p>',
+        );
+        $codes_text = t('Get new recovery codes');
+      }
+      $output['link'] = array(
+        '#type' => 'markup',
+        '#markup' => l($codes_text, 'user/' . $account->uid . '/security/tfa/recovery-codes'),
+      );
+      break;
+
+  }
   return $output;
 }
 
@@ -250,7 +284,7 @@ function tfa_basic_disable_form_submit($form, &$form_state) {
 /**
  * TFA setup form router.
  */
-function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setup') {
+function tfa_basic_setup_form($form, &$form_state, $account, $method = 'tfa_basic_totp') {
   global $user;
 
   $form['account'] = array(
@@ -258,15 +292,10 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setu
     '#value' => $account,
   );
   $tfa_data = tfa_basic_get_tfa_data($account);
+  $enabled = isset($tfa_data['status']) && $tfa_data['status'] ? TRUE : FALSE;
 
-  // Do not continue if this isn't app setup and the app isn't already set.
-  if (empty($tfa_data['status']) && $method != 'app_setup') {
-    drupal_set_message(t('Set up TFA application before continuing with additional configurations.'), 'warning');
-    drupal_goto('user/' . $account->uid . '/security/tfa');
-  }
-
+  // Always require a password on the first time through.
   if (empty($form_state['storage'])) {
-
     // Allow administrators to change TFA settings for another account.
     if ($account->uid != $user->uid && user_access('administer users')) {
       $current_pass_description = t('Enter your current password to alter TFA settings for account %name.', array('%name' => $account->name));
@@ -294,15 +323,25 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setu
     );
   }
   else {
-    // Support multi-step TFA plugins triggered in tfa_basic_setup_form_submit.
-    if (isset($form_state['storage']['method'])) {
-      $method = $form_state['storage']['method'];
+    // If TFA is not enabled setup each plugin by using enabled plugins as form
+    // steps.
+    if (!$enabled && empty($form_state['storage']['steps'])) {
+      $form_state['storage']['full_setup'] = TRUE;
+      $steps = _tfa_basic_full_setup_steps($method);
+      $form_state['storage']['steps_left'] = $steps;
+      $form_state['storage']['steps_skipped'] = array();
     }
+
+    // Override provided method if operating under multi-step.
+    if (isset($form_state['storage']['step_method'])) {
+      $method = $form_state['storage']['step_method'];
+    }
+    // Record methods progressed.
+    $form_state['storage']['steps'][] = $method;
     $context = array('uid' => $account->uid);
     switch ($method) {
-      case 'app_setup':
+      case 'tfa_basic_totp':
         drupal_set_title(t('TFA setup - Application'));
-        $form_state['storage']['methods'][] = $method;
         $setup_plugin = new TfaTotpSetup($context);
         $tfa_setup = new TfaSetup($setup_plugin, $context);
 
@@ -316,40 +355,25 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setu
         $form_state['storage'][$method] = $tfa_setup;
         break;
 
-      case 'trust_device':
+      case 'tfa_basic_trusted_device':
         drupal_set_title(t('TFA setup - Trusted browsers'));
-        $form_state['storage']['methods'][] = $method;
         $setup_plugin = new TfaTrustedDeviceSetup($context);
         $tfa_setup = new TfaSetup($setup_plugin, $context);
         $form = $tfa_setup->getForm($form, $form_state);
         $form_state['storage'][$method] = $tfa_setup;
         break;
 
-      case 'recovery_codes':
+      case 'tfa_basic_recovery_code':
         drupal_set_title(t('TFA setup - Recovery codes'));
-        $form_state['storage']['methods'][] = $method;
         $setup_plugin = new TfaBasicRecoveryCodeSetup($context);
         $tfa_setup = new TfaSetup($setup_plugin, $context);
         $form = $tfa_setup->getForm($form, $form_state);
         $form_state['storage'][$method] = $tfa_setup;
         break;
 
-      case 'recovery_codes_list':
-        $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
-        $codes = $recovery->getCodes();
-
-        $output = theme('item_list', array('items' => $codes));
-        $output .= l(t('Return to account TFA overview'), 'user/' . $account->uid . '/security/tfa');
-        $form['output'] = array(
-          '#type' => 'markup',
-          '#markup' => $output,
-        );
-        // Return early.
-        return $form;
-
-      case 'sms_setup':
+      case 'tfa_basic_sms':
         drupal_set_title(t('TFA setup - SMS'));
-        // First step is number entry.
+        // SMS itself has multiple steps. Begin with phone number entry.
         if (empty($form_state['storage'][$method])) {
           $default_number = tfa_basic_get_mobile_number($account);
           $form['sms_number'] = array(
@@ -369,7 +393,6 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setu
             '#type' => 'submit',
             '#value' => t('Send SMS'),
           );
-          $form_state['storage']['methods'][] = $method;
           if (!empty($tfa_data['data']['sms'])) {
             // Provide disable SMS option.
             $form['actions']['sms_disable'] = array(
@@ -386,25 +409,40 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setu
           drupal_set_message(t("A code was sent to @number. It may take up to a minute for its arrival.", array('@number' => $number)));
           $tfa_setup = $form_state['storage'][$method];
           $form = $tfa_setup->getForm($form, $form_state);
-          if (in_array('app_setup', $form_state['storage']['methods'])) {
+          if (isset($form_state['storage']['full_setup'])) {
             drupal_set_message(t("If the code does not arrive or you entered the wrong number skip this step to continue without SMS delivery. You can enable it after completing the rest of TFA setup."));
           }
           else {
-            $form['code']['#description'] .= ' ' . l(t('If the code does not arrive or you entered the wrong number click here to start over.'), 'user/' . $account->uid . '/security/tfa/sms-setup');
+            $form['sms_code']['#description'] .= ' ' . l(t('If the code does not arrive or you entered the wrong number click here to start over.'), 'user/' . $account->uid . '/security/tfa/sms-setup');
           }
 
           $form_state['storage'][$method] = $tfa_setup;
         }
         break;
 
+      // List previously saved recovery codes. Note, this is not a plugin.
+      case 'recovery_codes_list':
+        $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
+        $codes = $recovery->getCodes();
+
+        $output = theme('item_list', array('items' => $codes));
+        $output .= l(t('Return to account TFA overview'), 'user/' . $account->uid . '/security/tfa');
+        $form['output'] = array(
+          '#type' => 'markup',
+          '#markup' => $output,
+        );
+        // Return early.
+        return $form;
+
       default:
         break;
     }
-    // Provide skip button for optional TFA plugins.
-    if (isset($form_state['storage']['methods']) && count($form_state['storage']['methods']) > 1) {
+    // Provide skip button under full setup.
+    if (isset($form_state['storage']['full_setup']) && count($form_state['storage']['steps']) > 1) {
+      $count = count($form_state['storage']['steps_left']);
       $form['actions']['skip'] = array(
         '#type' => 'submit',
-        '#value' => t('Skip'),
+        '#value' => $count > 0 ? t('Skip') : t('Skip and finish'),
         '#limit_validation_errors' => array(),
         '#submit' => array('tfa_basic_setup_form_submit'),
       );
@@ -418,7 +456,8 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'app_setu
         '#submit' => array('tfa_basic_setup_form_submit'),
       );
     }
-    $form_state['storage']['method'] = $method;
+    // Record the method in progress regardless of whether in full setup.
+    $form_state['storage']['step_method'] = $method;
   }
 
   return $form;
@@ -459,8 +498,9 @@ function tfa_basic_setup_form_validate($form, &$form_state) {
     }
     return;
   }
-  elseif (!empty($form_state['storage']['method'])) {
-    $method = $form_state['storage']['method'];
+  // Validate plugin form.
+  elseif (!empty($form_state['storage']['step_method'])) {
+    $method = $form_state['storage']['step_method'];
     $tfa_setup = $form_state['storage'][$method];
     if (!$tfa_setup->validateForm($form, $form_state)) {
       foreach ($tfa_setup->getErrorMessages() as $element => $message) {
@@ -504,7 +544,7 @@ function tfa_basic_setup_form_submit($form, &$form_state) {
     }
     else {
       // No errors so store setup.
-      $form_state['storage']['sms_setup'] = $tfa_setup;
+      $form_state['storage']['tfa_basic_sms'] = $tfa_setup;
     }
     $form_state['rebuild'] = TRUE;
     return;
@@ -521,16 +561,24 @@ function tfa_basic_setup_form_submit($form, &$form_state) {
     return;
   }
   // Submitting a plugin form.
-  elseif (!empty($form_state['storage']['method'])) {
-    $method = $form_state['storage']['method'];
+  elseif (!empty($form_state['storage']['step_method'])) {
+    $method = $form_state['storage']['step_method'];
+    $skipped_method = FALSE;
 
-    // Support skipping optional steps.
+    // Support skipping optional steps when in full setup.
     if (isset($form_state['values']['skip']) && $form_state['values']['op'] === $form_state['values']['skip']) {
-      $skipped_method = array_pop($form_state['storage']['methods']);
-      unset($form_state['storage'][$skipped_method]);
+      $skipped_method = $method;
+      $form_state['storage']['steps_skipped'][] = $method;
+      unset($form_state['storage'][$method]);
     }
+
+    // Trigger multi-step if in full setup.
+    if (!empty($form_state['storage']['full_setup'])) {
+      _tfa_basic_set_next_step($form_state, $method, $skipped_method);
+    }
+
     // Plugin form submit.
-    elseif (!empty($form_state['storage'][$method])) {
+    if (!empty($form_state['storage'][$method])) {
       $setup_class = $form_state['storage'][$method];
       if (!$setup_class->submitForm($form, $form_state)) {
         drupal_set_message(t('There was an error during TFA setup. Your settings have not been saved.'), 'error');
@@ -539,39 +587,32 @@ function tfa_basic_setup_form_submit($form, &$form_state) {
       }
     }
 
-    // Save user TFA settings for relevant plugins.
-    switch ($method) {
-      case 'app_setup':
-        drupal_set_message(t('Application code verified.'));
-        tfa_basic_setup_save_data($account, array('method' => 'app'));
-        break;
+    // Save user TFA settings for relevant plugins that weren't skipped.
+    if (empty($skipped_method) && $method == 'tfa_basic_sms' &&
+      isset($form_state['storage']['sms_number']) &&
+      in_array('tfa_basic_sms', $form_state['storage']['steps'])) {
 
-      case 'sms_setup':
-        if (isset($form_state['storage']['sms_number']) && in_array('sms_setup', $form_state['storage']['methods'])) {
-          // Update mobile number if different than stored.
-          if ($form_state['storage']['sms_number'] !== tfa_basic_get_mobile_number($account)) {
-            tfa_basic_set_mobile_number($account, $form_state['storage']['sms_number']);
-          }
-          tfa_basic_setup_save_data($account, array('sms' => TRUE));
-        }
-        break;
+      // Update mobile number if different than stored.
+      if ($form_state['storage']['sms_number'] !== tfa_basic_get_mobile_number($account)) {
+        tfa_basic_set_mobile_number($account, $form_state['storage']['sms_number']);
+      }
+      tfa_basic_setup_save_data($account, array('sms' => TRUE));
     }
-    // Trigger multi-step plugins if this process began with application setup.
-    if (in_array('app_setup', $form_state['storage']['methods']) && function_exists('_tfa_basic_' . $method . '_next_step')) {
-      $function = '_tfa_basic_' . $method . '_next_step';
-      $function($form_state, $form_state);
-    }
+
     // Return if multi-step.
     if (isset($form_state['rebuild']) && $form_state['rebuild']) {
       return;
     }
-
-    // Setup complete, return to overview page.
+    // Else, setup complete and return to overview page.
     drupal_set_message(t('TFA setup complete.'));
     $form_state['redirect'] = 'user/' . $account->uid . '/security/tfa';
 
-    // Log and notify if app was set up.
-    if (in_array('app_setup', $form_state['storage']['methods'])) {
+    // Log and notify if this was full setup.
+    if (!empty($form_state['storage']['full_setup'])) {
+      $data = array(
+        'plugins' => array_diff($form_state['storage']['steps'], $form_state['storage']['steps_skipped']),
+      );
+      tfa_basic_setup_save_data($account, $data);
       $params = array('account' => $account);
       drupal_mail('tfa_basic', 'tfa_basic_tfa_enabled', $account->mail, user_preferred_language($account), $params);
       watchdog('tfa_basic', 'TFA enabled for user @name UID !uid', array(
@@ -583,47 +624,68 @@ function tfa_basic_setup_form_submit($form, &$form_state) {
 }
 
 /**
- * Set step after application setup.
+ * Steps eligble for TFA Basic setup.
  */
-function _tfa_basic_app_setup_next_step(&$form, &$form_state) {
-  // Next step is SMS setup if enabled.
-  $phone_field = variable_get('tfa_basic_phone_field', '');
-  if ($phone_field !== '' && in_array('tfa_basic_sms', variable_get('tfa_fallback_plugins', array()))) {
-    $form_state['rebuild'] = TRUE;
-    $form_state['storage']['method'] = 'sms_setup';
-    drupal_set_message(t('Provide a mobile phone number that can receive SMS codes in case you are without your phone or application and need to log in.'));
+function _tfa_basic_full_setup_steps() {
+  $steps = array();
+  $plugins = array(
+    'tfa_basic_totp',
+    'tfa_basic_sms',
+    'tfa_basic_trusted_device',
+    'tfa_basic_recovery_code',
+  );
+  foreach ($plugins as $plugin) {
+    if ($plugin === variable_get('tfa_validate_plugin', '') ||
+      in_array($plugin, variable_get('tfa_fallback_plugins', array())) ||
+      in_array($plugin, variable_get('tfa_login_plugins', array()))) {
+      $steps[] = $plugin;
+    }
   }
-  else {
-    // Or whatever would be after SMS step.
-    _tfa_basic_sms_setup_next_step($form, $form_state);
-  }
+  return $steps;
 }
 
 /**
- * Set step after SMS setup.
+ * Set form rebuild, next step, and message if any plugin steps left.
  */
-function _tfa_basic_sms_setup_next_step(&$form, &$form_state) {
-  // Next step is trusted browsers if enabled.
-  if (in_array('tfa_basic_trusted_device', variable_get('tfa_login_plugins', array()))) {
-    $form_state['rebuild'] = TRUE;
-    $form_state['storage']['method'] = 'trust_device';
-    drupal_set_message(t('Mark this browser as trusted or skip to continue with TFA setup.'));
-  }
-  else {
-    // Or whatever would be after trusted browser step.
-    _tfa_basic_trust_device_next_step($form, $form_state);
-  }
-}
+function _tfa_basic_set_next_step(&$form_state, $this_step, $skipped_step = FALSE) {
+  // Remove this step from steps left.
+  $form_state['storage']['steps_left'] = array_diff($form_state['storage']['steps_left'], array($this_step));
+  if (!empty($form_state['storage']['steps_left'])) {
+    // Contextual reporting.
+    $output = FALSE;
+    switch ($this_step) {
+      case 'tfa_basic_totp':
+        $output = $skipped_step ? t('Application codes not enabled.') : t('Application code verified.');
+        break;
 
-/**
- * Set step after trusted browsers.
- */
-function _tfa_basic_trust_device_next_step(&$form, &$form_state) {
-  // Final step is recovery codes if enabled.
-  if (in_array('tfa_basic_recovery_code', variable_get('tfa_fallback_plugins', array()))) {
+      case 'tfa_basic_sms':
+        $output = $skipped_step ? t('SMS code delivery not enabled.') : t('SMS code verified.');
+        break;
+
+      case 'tfa_basic_trusted_device':
+        // Handle whether the checkbox was unchecked.
+        if ($skipped_step || empty($form_state['values']['trust'])) {
+          $output = t('Browser not saved.');
+        }
+        else {
+          $output = t('Browser saved.');
+        }
+        break;
+
+      case 'tfa_basic_recovery_code':
+        $output = $skipped_step ? t('Recovery codes not saved.') : t('Saved recovery codes.');
+        break;
+    }
+    $count = count($form_state['storage']['steps_left']);
+    $output .= ' ' . format_plural($count, 'One setup step remaining.', '@count TFA setup steps remain.', array('@count' => $count));
+    if ($output) {
+      drupal_set_message($output);
+    }
+
+    // Set next step and mark form for rebuild.
+    $next_step = array_shift($form_state['storage']['steps_left']);
+    $form_state['storage']['step_method'] = $next_step;
     $form_state['rebuild'] = TRUE;
-    $form_state['storage']['method'] = 'recovery_codes';
-    drupal_set_message(t('Save recovery codes or skip to complete TFA setup.'));
   }
 }
 

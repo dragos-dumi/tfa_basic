@@ -19,7 +19,7 @@ class TfaBasicSms extends TfaBasePlugin implements TfaValidationPluginInterface,
     $this->twilioNumber = variable_get('tfa_basic_twilio_account_number', '');
     $this->codeLength = 6;
     $this->messageText = variable_get('tfa_basic_twilio_message_text',
-      'Login code: !code');
+      'Verification code: !code');
 
     $this->mobileNumber = $mobile_number;
     if (!empty($context['mobile_number'])) {
@@ -172,7 +172,7 @@ class TfaBasicSmsSetup extends TfaBasicSms implements TfaSetupPluginInterface {
    * @copydoc TfaSetupPluginInterface::getSetupForm()
    */
   public function getSetupForm(array $form, array &$form_state) {
-    $form['code'] = array(
+    $form['sms_code'] = array(
       '#type' => 'textfield',
       '#title' => t('Verification Code'),
       '#required' => TRUE,
@@ -190,8 +190,8 @@ class TfaBasicSmsSetup extends TfaBasicSms implements TfaSetupPluginInterface {
    * @copydoc TfaSetupPluginInterface::validateSetupForm()
    */
   public function validateSetupForm(array $form, array &$form_state) {
-    if (!$this->validate($form_state['values']['code'])) {
-      $this->errorMessages['code'] = t('Invalid code. Please try again.');
+    if (!$this->validate($form_state['values']['sms_code'])) {
+      $this->errorMessages['sms_code'] = t('Invalid code. Please try again.');
       return FALSE;
     }
     else {

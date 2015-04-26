@@ -225,7 +225,7 @@ class TfaBasicTestCase extends DrupalWebTestCase {
       case 'set-trust-skip':
         return 'Mark this browser as trusted or skip to continue and finish TFA setup';
       case 'set-recovery-codes':
-        return 'Save recovery codes or skip to complete TFA setup.';
+        return 'Your recovery codes';
       case 'setup-complete':
         return 'TFA setup complete';
       case 'setup-trust':
