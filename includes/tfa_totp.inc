@@ -77,6 +77,8 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
   protected function validate($code) {
     // Get OTP seed.
     $seed = $this->getSeed();
+    // Strip whitespace.
+    $code = preg_replace('/\s+/', '', $code);
     $this->isValid = ($seed && $this->ga->verifyCode($seed, $code, $this->timeSkew));
     return $this->isValid;
   }
