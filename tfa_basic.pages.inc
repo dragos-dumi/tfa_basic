@@ -199,7 +199,12 @@ function tfa_basic_disable_form($form, &$form_state, $account) {
  * Disable form validate.
  */
 function tfa_basic_disable_form_validate($form, &$form_state) {
+  global $user;
   $account = $form_state['storage']['account'];
+  // Allow administrators to disable TFA for another account.
+  if ($account->uid != $user->uid && user_access('administer users')) {
+    $account = $user;
+  }
   // Check password. (from user.module user_validate_current_pass()).
   require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
   $current_pass = user_check_password($form_state['values']['current_pass'], $account);

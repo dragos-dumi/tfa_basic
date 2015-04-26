@@ -30,6 +30,11 @@ class TfaBasicTestCase extends DrupalWebTestCase {
    */
   protected $web_user;
 
+  /**
+   * @var stdClass
+   */
+  protected $admin_user;
+
   public static function getInfo() {
     return array(
       'name' => 'TFA Basic tests',
@@ -45,11 +50,13 @@ class TfaBasicTestCase extends DrupalWebTestCase {
     require_once drupal_get_path('module', 'tfa_basic') . '/includes/googleauthenticator/GoogleAuthenticator.php';
     $this->ga = new PHPGangsta_GoogleAuthenticator();
     $this->web_user = $this->drupalCreateUser(array('access content', 'setup own tfa'));
+    $this->admin_user = $this->drupalCreateUser(array('access content', 'administer users'));
   }
 
   public function testTfaBasic() {
     // Use one test function to allow accounts to carry through testing.
     $this->_testAppAndRecoverySetup();
+    $this->_testAdminDisable();
   }
 
   public function _testAppAndRecoverySetup() {
@@ -178,6 +185,23 @@ class TfaBasicTestCase extends DrupalWebTestCase {
     $this->assertText('My account');
   }
 
+  public function _testAdminDisable() {
+    $this->drupalLogin($this->admin_user);
+
+    $this->drupalGet('user/' . $this->web_user->uid . '/security/tfa');
+    $this->assertText($this->web_user->name, 'Account name appears');
+    $this->assertText($this->uiStrings('tfa-status-enabled'));
+    $this->assertLink($this->uiStrings('tfa-disable'));
+
+    $this->drupalGet('user/' . $this->web_user->uid . '/security/tfa/disable');
+    $this->assertText($this->uiStrings('tfa-disable-confirm'));
+    $edit = array(
+      'current_pass' => $this->admin_user->pass_raw,
+    );
+    $this->drupalPost('user/' . $this->web_user->uid . '/security/tfa/disable', $edit, 'Disable');
+    $this->assertText($this->uiStrings('tfa-disabled'));
+  }
+
   /**
    * TFA module user interface strings.
    *
@@ -218,6 +242,12 @@ class TfaBasicTestCase extends DrupalWebTestCase {
         return 'Enter one of your recovery codes';
       case 'tfa-status-enabled':
         return 'TFA enabled';
+      case 'tfa-disable':
+        return 'Disable TFA';
+      case 'tfa-disable-confirm':
+        return 'Are you sure you want to disable TFA on account';
+      case 'tfa-disabled':
+        return 'TFA has been disabled';
     }
   }
 }
