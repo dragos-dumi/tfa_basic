@@ -25,8 +25,8 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
   public function __construct(array $context) {
     parent::__construct($context);
     $this->ga = new PHPGangsta_GoogleAuthenticator();
-    // Allow codes within tolerance range of 2 * 30 second units.
-    $this->timeSkew = variable_get('tfa_basic_time_skew', 2);
+    // Allow codes within tolerance range of 3 * 30 second units.
+    $this->timeSkew = variable_get('tfa_basic_time_skew', 3);
     // Recommended: set variable tfa_totp_secret_key in settings.php.
     $this->encryptionKey = variable_get('tfa_basic_secret_key', drupal_get_private_key());
   }
