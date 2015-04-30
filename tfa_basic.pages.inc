@@ -15,10 +15,10 @@ function tfa_basic_overview($form, &$form_state, $account) {
 
   if (!empty($user_tfa)) {
     if ($enabled) {
-      $status_text = t('Status: <strong>TFA enabled</strong>, set !time', array('!time' => format_date($user_tfa['saved'])));
+      $status_text = t('Status: <strong>TFA enabled</strong>, set !time. <a href="!url">Disable TFA</a>', array('!time' => format_date($user_tfa['saved']), '!url' => url('user/' . $account->uid . '/security/tfa/disable')));
     }
     else {
-      $status_text = t('Status: <strong>TFA disabled</strong>, set !time', array('!time' => format_date($user_tfa['saved'])));
+      $status_text = t('Status: <strong>TFA disabled</strong>, set !time.', array('!time' => format_date($user_tfa['saved'])));
     }
     $output['status'] = array(
       '#type' => 'markup',
@@ -40,11 +40,6 @@ function tfa_basic_overview($form, &$form_state, $account) {
     $output['trust'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_trusted_device', $account, $user_tfa);
     // Recovery codes.
     $output['recovery'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_recovery_code', $account, $user_tfa);
-
-    $output['disable'] = array(
-      '#type' => 'markup',
-      '#markup' => '<p>' . l(t('Disable TFA'), 'user/' . $account->uid . '/security/tfa/disable') . '</p>',
-    );
   }
 
   return $output;
@@ -72,22 +67,39 @@ function _tfa_basic_plugin_setup_form_overview($plugin, $account, array $user_tf
   switch ($plugin) {
     case 'tfa_basic_totp';
       $output = array(
-        '#type' => 'fieldset',
-        '#title' => t('TFA application'),
-        '#description' => t('Generate verification codes from a mobile or desktop application.'),
-      );
-      $setup_text = !$enabled ? t('Set up application') : t('Reset application');
-      $output['link'] = array(
-        '#type' => 'markup',
-        '#markup' => l($setup_text, 'user/' . $account->uid . '/security/tfa/app-setup'),
+        'heading' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => t('TFA application'),
+        ),
+        'description' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => t('Generate verification codes from a mobile or desktop application.'),
+        ),
+        'link' => array(
+          '#prefix' => '<p>',
+          '#theme' => 'link',
+          '#path' => 'user/' . $account->uid . '/security/tfa/app-setup',
+          '#text' => !$enabled ? t('Set up application') : t('Reset application'),
+          '#options' => array('attributes' => array(), 'html' => FALSE),
+          '#suffix' => '</p>',
+        ),
       );
       break;
 
     case 'tfa_basic_sms':
       $output = array(
-        '#type' => 'fieldset',
-        '#title' => t('SMS'),
-        '#description' => t('Receive verification code via SMS.'),
+        'heading' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => t('SMS'),
+        ),
+        'description' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => t('Receive verification code via SMS.'),
+        ),
       );
       $mobile_number = tfa_basic_get_mobile_number($account);
       if (!empty($user_tfa['data']['sms']) && $mobile_number !== FALSE) {
@@ -125,11 +137,17 @@ function _tfa_basic_plugin_setup_form_overview($plugin, $account, array $user_tf
         }
         $trusted_browsers[] = $message;
       }
-      $time = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30) / (3600 * 24);
       $output = array(
-        '#type' => 'fieldset',
-        '#title' => t('Trusted browsers'),
-        '#description' => t('Browsers that will not require a verification code during login.', array('!time' => $time)),
+        'heading' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => t('Trusted browsers'),
+        ),
+        'description' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => t('Browsers that will not require a verification code during login.'),
+        ),
       );
       if (!empty($trusted_browsers)) {
         $output['list'] = array(
@@ -138,17 +156,28 @@ function _tfa_basic_plugin_setup_form_overview($plugin, $account, array $user_tf
         );
       }
       $output['link'] = array(
-        '#type' => 'markup',
-        '#markup' => l(t('Set trusted browsers'), 'user/' . $account->uid . '/security/tfa/trusted-browsers'),
+        '#prefix' => '<p>',
+        '#theme' => 'link',
+        '#path' => 'user/' . $account->uid . '/security/tfa/trusted-browsers',
+        '#text' => t('Set trusted browsers'),
+        '#options' => array('attributes' => array(), 'html' => FALSE),
+        '#suffix' => '</p>',
       );
       break;
 
     case 'tfa_basic_recovery_code':
       $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
       $output = array(
-        '#type' => 'fieldset',
-        '#title' => t('Recovery codes'),
-        '#description' => t('Pre-generated, one-time-use codes intended as a fallback should other methods be unavailable.'),
+        'heading' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => t('Recovery codes'),
+        ),
+        'description' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => t('Pre-generated, one-time-use codes intended as a fallback should other methods be unavailable.'),
+        ),
       );
       $recovery_codes = $recovery->getCodes();
       if (empty($recovery_codes)) {
@@ -156,14 +185,22 @@ function _tfa_basic_plugin_setup_form_overview($plugin, $account, array $user_tf
       }
       else {
         $output['list'] = array(
-          '#type' => 'markup',
-          '#markup' => '<p>' . l(t('View unused recovery codes'), 'user/' . $account->uid . '/security/tfa/recovery-codes-list') . '</p>',
+          '#prefix' => '<p>',
+          '#theme' => 'link',
+          '#path' => 'user/' . $account->uid . '/security/tfa/recovery-codes-list',
+          '#text' => t('View unused recovery codes'),
+          '#options' => array('attributes' => array(), 'html' => FALSE),
+          '#suffix' => '</p>',
         );
         $codes_text = t('Get new recovery codes');
       }
       $output['link'] = array(
-        '#type' => 'markup',
-        '#markup' => l($codes_text, 'user/' . $account->uid . '/security/tfa/recovery-codes'),
+        '#prefix' => '<p>',
+        '#theme' => 'link',
+        '#path' => 'user/' . $account->uid . '/security/tfa/recovery-codes',
+        '#text' => $codes_text,
+        '#options' => array('attributes' => array(), 'html' => FALSE),
+        '#suffix' => '</p>',
       );
       break;
 
