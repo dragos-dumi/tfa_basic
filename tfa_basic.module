@@ -229,6 +229,38 @@ function tfa_basic_tfa_context_alter(&$context) {
 }
 
 /**
+ * Implements hook_tfa_ready_require().
+ */
+function tfa_basic_tfa_ready_require($account) {
+  if (tfa_basic_tfa_required($account)) {
+    drupal_set_message(t('Login disallowed. You are required to set up two-factor authentication. Please contact a site administrator.'), 'error');
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Whether TFA is required for the account.
+ *
+ * @param object $account
+ *
+ * @return bool
+ */
+function tfa_basic_tfa_required($account) {
+  $required = FALSE;
+  $required_roles = variable_get('tfa_basic_roles_require', array());
+  if (!empty($required_roles)) {
+    foreach ($required_roles as $rid => $enabled) {
+      if ($enabled && array_key_exists($rid, $account->roles)) {
+        $required = TRUE;
+        break;
+      }
+    }
+  }
+  return $required;
+}
+
+/**
  * Get mobile number for an account.
  *
  * @param object $account
@@ -451,6 +483,14 @@ function tfa_basic_format_number($number) {
 function tfa_basic_form_tfa_admin_settings_alter(&$form, &$form_state, $form_id) {
   global $cookie_domain;
 
+  $form['required_tfa_roles'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Roles required to have set up TFA'),
+    '#description' => t("Login will be denied to an account without TFA setup and any matching role."),
+    '#options' => user_roles(TRUE),
+    '#default_value' => variable_get('tfa_basic_roles_require', array()),
+  );
+
   // Add cookie domain field to TFA admin settings.
   $form['tfa_basic_cookie_domain'] = array(
     '#type' => 'textfield',
@@ -624,6 +664,7 @@ function tfa_basic_form_submit($form, &$form_state) {
   if ($phone_field !== FALSE && !empty($form_state['values']['tfa_fallback']) && !empty($form_state['values']['tfa_fallback']['tfa_basic_sms']['enable']) && !empty($form_state['values']['tfa_basic_phone_field'])) {
     variable_set('tfa_basic_phone_field', $form_state['values']['tfa_basic_phone_field']);
   }
+  variable_set('tfa_basic_roles_require', $form_state['values']['required_tfa_roles']);
 }
 
 /**

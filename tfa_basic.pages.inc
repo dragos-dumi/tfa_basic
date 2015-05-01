@@ -216,14 +216,14 @@ function tfa_basic_disable_form($form, &$form_state, $account) {
   if ($account->uid != $user->uid && user_access('administer users')) {
     $preamble_desc = t('Are you sure you want to disable TFA on account %name?', array('%name' => $account->name));
     $notice_desc = t('TFA settings and data will be lost. %name can re-enable TFA again from their profile.', array('%name' => $account->name));
-    if (user_access('require tfa', $account)) {
+    if (tfa_basic_tfa_required($account)) {
       drupal_set_message(t("This account is required to have TFA enabled per the 'require TFA' permission on one of their roles. Disabling TFA will remove their ability to log back into the site. If you continue, consider also removing the role so they can authenticate and setup TFA again."), 'warning');
     }
   }
   else {
     $preamble_desc = t('Are you sure you want to disable your two-factor authentication setup?');
     $notice_desc = t("Your settings and data will be lost. You can re-enable two-factor authentication again from your profile.");
-    if (user_access('require tfa', $account)) {
+    if (tfa_basic_tfa_required($account)) {
       drupal_set_message(t('Your account must have at least one two-factor authentication method enabled. Continuing will disable your ability to log back into this site.'), 'warning');
       $notice_desc = t('Your settings and data will be lost and you will be unable to log back into the site. To regain access contact a site administrator.');
     }
