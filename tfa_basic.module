@@ -215,9 +215,11 @@ function tfa_basic_tfa_context_alter(&$context) {
   $number = tfa_basic_get_mobile_number($account);
   if ((empty($tfa_data['data']['sms']) || !$number)) {
     $fallback_plugins = array();
-    foreach ($context['plugins']['fallback'] as $plugin) {
-      if ($plugin !== 'tfa_basic_sms') {
-        $fallback_plugins[] = $plugin;
+    if (isset($context['plugins']['fallback'])) {
+      foreach ($context['plugins']['fallback'] as $plugin) {
+        if ($plugin !== 'tfa_basic_sms') {
+          $fallback_plugins[] = $plugin;
+        }
       }
     }
     // Remove SMS from validation if set.
