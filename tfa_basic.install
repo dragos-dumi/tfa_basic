@@ -57,7 +57,7 @@ function tfa_basic_schema() {
     'primary key' => array('uid'),
   );
 
-  $schema['tfa_trusted_device'] = array(
+  $schema['tfa_trusted_browser'] = array(
     'fields' => array(
       'did' => array(
         'type' => 'serial',
@@ -101,7 +101,7 @@ function tfa_basic_schema() {
     ),
     'primary key' => array('did'),
     'indexes' => array(
-      'device' => array('uid', 'value'),
+      'browser' => array('uid', 'value'),
     ),
   );
 
@@ -186,6 +186,27 @@ function tfa_basic_update_7001() {
     ),
   );
   db_create_table('tfa_recovery_code', $schema['tfa_recovery_code']);
+}
+
+/**
+ * Rename trusted device to trusted browser.
+ */
+function tfa_basic_update_7002() {
+  // Rename DB table.
+  db_rename_table('tfa_trusted_device', 'tfa_trusted_browser');
+
+  // Rename login plugin.
+  $plugins = variable_get('tfa_login_plugins');
+  if (!empty($plugins)) {
+    foreach ($plugins as $k => $plugin) {
+      if ($plugin == 'tfa_basic_trusted_device') {
+        $plugins[$k] = 'tfa_basic_trusted_browser';
+        // Keep the legacy cookie name.
+        variable_set('tfa_basic_cookie_name', 'TD');
+      }
+    }
+    variable_set('tfa_login_plugins', $plugins);
+  }
 }
 
 /**

@@ -37,7 +37,7 @@ function tfa_basic_overview($form, &$form_state, $account) {
     // SMS setup.
     $output['sms'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_sms', $account, $user_tfa);
     // Trusted browsers.
-    $output['trust'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_trusted_device', $account, $user_tfa);
+    $output['trust'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_trusted_browser', $account, $user_tfa);
     // Recovery codes.
     $output['recovery'] = _tfa_basic_plugin_setup_form_overview('tfa_basic_recovery_code', $account, $user_tfa);
   }
@@ -120,10 +120,10 @@ function _tfa_basic_plugin_setup_form_overview($plugin, $account, array $user_tf
       );
       break;
 
-    case 'tfa_basic_trusted_device':
-      $trusted_device = new TfaTrustedDeviceSetup(array('uid' => $account->uid));
+    case 'tfa_basic_trusted_browser':
+      $trusted_browser = new TfaTrustedBrowserSetup(array('uid' => $account->uid));
       $trusted_browsers = array();
-      foreach ($trusted_device->getTrustedDevices() as $device) {
+      foreach ($trusted_browser->getTrustedBrowsers() as $device) {
         $vars = array(
           '!set' => format_date($device['created']),
           '@browser' => $device['name'],
@@ -302,9 +302,9 @@ function tfa_basic_disable_form_submit($form, &$form_state) {
   // Delete recovery codes.
   $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
   $recovery->deleteCodes();
-  // Delete trusted devices.
-  $trusted = new TfaTrustedDeviceSetup(array('uid' => $account->uid));
-  $trusted->deleteTrustedDevices();
+  // Delete trusted browsers.
+  $trusted = new TfaTrustedBrowserSetup(array('uid' => $account->uid));
+  $trusted->deleteTrustedBrowsers();
 
   watchdog('tfa_basic', 'TFA disabled for user @name UID !uid', array(
     '@name' => $account->name,
@@ -392,9 +392,9 @@ function tfa_basic_setup_form($form, &$form_state, $account, $method = 'tfa_basi
         $form_state['storage'][$method] = $tfa_setup;
         break;
 
-      case 'tfa_basic_trusted_device':
+      case 'tfa_basic_trusted_browser':
         drupal_set_title(t('TFA setup - Trusted browsers'));
-        $setup_plugin = new TfaTrustedDeviceSetup($context);
+        $setup_plugin = new TfaTrustedBrowserSetup($context);
         $tfa_setup = new TfaSetup($setup_plugin, $context);
         $form = $tfa_setup->getForm($form, $form_state);
         $form_state['storage'][$method] = $tfa_setup;
@@ -668,7 +668,7 @@ function _tfa_basic_full_setup_steps() {
   $plugins = array(
     'tfa_basic_totp',
     'tfa_basic_sms',
-    'tfa_basic_trusted_device',
+    'tfa_basic_trusted_browser',
     'tfa_basic_recovery_code',
   );
   foreach ($plugins as $plugin) {
@@ -699,7 +699,7 @@ function _tfa_basic_set_next_step(&$form_state, $this_step, $skipped_step = FALS
         $output = $skipped_step ? t('SMS code delivery not enabled.') : t('SMS code verified.');
         break;
 
-      case 'tfa_basic_trusted_device':
+      case 'tfa_basic_trusted_browser':
         // Handle whether the checkbox was unchecked.
         if ($skipped_step || empty($form_state['values']['trust'])) {
           $output = t('Browser not saved.');

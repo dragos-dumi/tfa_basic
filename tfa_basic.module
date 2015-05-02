@@ -64,7 +64,7 @@ function tfa_basic_menu() {
   $items['user/%user/security/tfa/trusted-browsers'] = array(
     'title' => 'TFA setup',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('tfa_basic_setup_form', 1, 'tfa_basic_trusted_device'),
+    'page arguments' => array('tfa_basic_setup_form', 1, 'tfa_basic_trusted_browser'),
     'access callback' => 'tfa_basic_setup_access',
     'access arguments' => array(1, 'setup own tfa'),
     'type' => MENU_CALLBACK,
@@ -119,10 +119,10 @@ function tfa_basic_setup_access($account, $permission = '') {
  * Implements hook_cron().
  */
 function tfa_basic_cron() {
-  // Delete trusted device entries older than expiration.
+  // Delete trusted browser entries older than expiration.
   $expiration = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30);
 
-  $num_deleted = db_delete('tfa_trusted_device')
+  $num_deleted = db_delete('tfa_trusted_browser')
     ->condition('created', REQUEST_TIME - $expiration, '<')
     ->execute();
   if ($num_deleted) {
@@ -139,8 +139,8 @@ function tfa_basic_tfa_api() {
       'class' => 'TfaTotp',
       'name' => 'TOTP',
     ),
-    'tfa_basic_trusted_device' => array(
-      'class' => 'TfaTrustedDevice',
+    'tfa_basic_trusted_browser' => array(
+      'class' => 'TfaTrustedBrowser',
       'name' => 'Trusted Browsers',
     ),
     'tfa_basic_recovery_code' => array(
@@ -169,13 +169,13 @@ function tfa_basic_totp_create($context) {
 }
 
 /**
- * Create TfaTrustedDevice plugin.
+ * Create TfaTrustedBrowser plugin.
  *
  * @param array $context
- * @return TfaTrustedDevice
+ * @return TfaTrustedBrowser
  */
-function tfa_basic_trusted_device_create($context) {
-  return new TfaTrustedDevice($context);
+function tfa_basic_trusted_browser_create($context) {
+  return new TfaTrustedBrowser($context);
 }
 
 /**
@@ -501,7 +501,7 @@ function tfa_basic_form_tfa_admin_settings_alter(&$form, &$form_state, $form_id)
     '#description' => t('Domain to set for the trusted browser TFA cookie.'),
     '#states' => array(
       'visible' => array(
-        ':input[name="tfa_login[tfa_basic_trusted_device]"]' => array('checked' => TRUE)
+        ':input[name="tfa_login[tfa_basic_trusted_browser]"]' => array('checked' => TRUE)
       )
     ),
   );
@@ -613,7 +613,7 @@ function tfa_basic_form_validate($form, &$form_state) {
       }
     }
 
-    if (!empty($login) && in_array('tfa_basic_trusted_device', $login) && empty($values['tfa_basic_cookie_domain'])) {
+    if (!empty($login) && in_array('tfa_basic_trusted_browser', $login) && empty($values['tfa_basic_cookie_domain'])) {
       form_set_error('tfa_basic_cookie_domain', t('Cookie domain is required if Trusted Browser plugin is enabled.'));
     }
   }

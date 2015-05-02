@@ -35,10 +35,10 @@ https://www.drupal.org/project/issues/tfa_basic
  Prefix for TOTP QR code names. Suffix is account username.
 
  * tfa_basic_cookie_name
- Cookie name of TFA trusted device cookie. Default is "TD".
+ Cookie name of TFA trusted browser cookie. Default is "TB".
 
  * tfa_basic_cookie_domain
- Cookie domain for TFA trusted device cookie.
+ Cookie domain for TFA trusted browser cookie.
 
  * tfa_basic_trust_cookie_expiration
  How long before TFA cookies expire. Default is 30 days.
