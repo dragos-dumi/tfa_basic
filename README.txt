@@ -43,6 +43,9 @@ https://www.drupal.org/project/issues/tfa_basic
  * tfa_basic_trust_cookie_expiration
  How long before TFA cookies expire. Default is 30 days.
 
+ * tfa_basic_accepted_code_expiration
+ How long before accepted TOTP codes expire. Default is 1 day.
+
 ## Using qrcode.js library instead of Google images
 
 By default the module uses Google's Chart API to create a QR code. That request

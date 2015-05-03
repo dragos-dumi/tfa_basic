@@ -202,6 +202,79 @@ class TfaBasicTestCase extends DrupalWebTestCase {
     $this->assertText($this->uiStrings('tfa-disabled'));
   }
 
+  public function testTotpReplay() {
+    variable_set('tfa_enabled', TRUE);
+    variable_set('tfa_validate_plugin', 'tfa_basic_totp');
+    $account = $this->drupalCreateUser(array('access content', 'setup own tfa'));
+    $edit = array(
+      'name' => $account->name,
+      'pass' => $account->pass_raw,
+    );
+    $this->drupalPost('user/login', $edit, 'Log in');
+    // Set up application.
+    $this->drupalGet('user/' . $account->uid . '/security/tfa/app-setup');
+    $pass_form = array(
+      'current_pass' => $account->pass_raw,
+    );
+    $this->drupalPost(NULL, $pass_form, 'Confirm');
+    $result = $this->xpath('//input[@name="seed"]');
+    if (empty($result)) {
+      $this->fail('Unable to extract seed from page. Aborting test.');
+      return;
+    }
+    $element = $result[0];
+    $this->seed = (string) $element['value'];
+
+    // Submit valid code.
+    $code_form = array(
+      'code' => $this->ga->getCode($this->seed),
+    );
+    $this->drupalPost(NULL, $code_form, 'Verify and save');
+
+    $this->drupalLogout();
+
+    $edit = array(
+      'name' => $account->name,
+      'pass' => $account->pass_raw,
+    );
+    $this->drupalPost('user/login', $edit, 'Log in');
+    $url_parts = explode('/', $this->url);
+    $login_hash = array_pop($url_parts);
+
+    // Submit valid code.
+    $code = $this->ga->getCode($this->seed);
+    $code_form = array(
+      'code' => $code,
+    );
+    $this->drupalPost('system/tfa/' . $account->uid . '/' . $login_hash, $code_form, 'Verify');
+    $this->assertText('My account');
+
+    // Logout and retry same code.
+    $this->drupalLogout();
+    $edit = array(
+      'name' => $account->name,
+      'pass' => $account->pass_raw,
+    );
+    $this->drupalPost('user/login', $edit, 'Log in');
+    $url_parts = explode('/', $this->url);
+    $login_hash = array_pop($url_parts);
+    $code_form = array(
+      'code' => $code,
+    );
+    $this->drupalPost('system/tfa/' . $account->uid . '/' . $login_hash, $code_form, 'Verify');
+    $this->assertNoText('My account');
+    $this->assertText($this->uiStrings('tfa-replay'));
+
+    // Set expire time and run cron to delete saved code to log in.
+    variable_set('tfa_basic_accepted_code_expiration', '0');
+    $this->cronRun();
+    $code_form = array(
+      'code' => $code,
+    );
+    $this->drupalPost('system/tfa/' . $account->uid . '/' . $login_hash, $code_form, 'Verify');
+    $this->assertText('My account');
+  }
+
   public function testRequired() {
     variable_set('tfa_enabled', TRUE);
     variable_set('tfa_validate_plugin', 'tfa_basic_totp');
@@ -295,6 +368,8 @@ class TfaBasicTestCase extends DrupalWebTestCase {
         return 'Login disallowed. You are required to set up two-factor authentication.';
       case 'disable-required':
         return 'Your account must have at least one two-factor authentication method enabled. Continuing will disable your ability to log back into this site.';
+      case 'tfa-replay':
+        return 'Invalid code, it was recently used for a login. Please wait for the application to generate a new code.';
     }
   }
 }

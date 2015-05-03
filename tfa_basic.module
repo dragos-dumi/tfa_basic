@@ -128,6 +128,12 @@ function tfa_basic_cron() {
   if ($num_deleted) {
     watchdog('tfa_basic', 'Removed !num TFA trusted browsers older than !time', array('!num' => $num_deleted, '!time' => REQUEST_TIME - $expiration), WATCHDOG_INFO);
   }
+
+  // Delete accepted codes older than expiration.
+  $accepted_expiration = variable_get('tfa_basic_accepted_code_expiration', 3600 * 24);
+  db_delete('tfa_accepted_code')
+    ->condition('time_accepted', REQUEST_TIME - $accepted_expiration, '<')
+    ->execute();
 }
 
 /**

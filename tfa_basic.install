@@ -142,6 +142,39 @@ function tfa_basic_schema() {
     ),
   );
 
+  $schema['tfa_accepted_code'] = array(
+    'fields' => array(
+      'cid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'code_hash' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '',
+      ),
+      'time_accepted' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('cid'),
+    'indexes' => array(
+      'uid_code' => array('uid', 'code_hash'),
+      'time_accepted' => array('time_accepted'),
+    ),
+  );
+
   return $schema;
 }
 
@@ -210,7 +243,46 @@ function tfa_basic_update_7002() {
 }
 
 /**
- * Implement hook_uninstall().
+ * Create new database table {tfa_accepted_code}.
+ */
+function tfa_basic_update_7003() {
+  $schema['tfa_accepted_code'] = array(
+    'fields' => array(
+      'cid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'code_hash' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '',
+      ),
+      'time_accepted' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('cid'),
+    'indexes' => array(
+      'uid_code' => array('uid', 'code_hash'),
+      'time_accepted' => array('time_accepted'),
+    ),
+  );
+  db_create_table('tfa_accepted_code', $schema['tfa_accepted_code']);
+}
+
+/**
+ * Implements hook_uninstall().
  */
 function tfa_basic_uninstall() {
   // Delete TFA Basic variables.

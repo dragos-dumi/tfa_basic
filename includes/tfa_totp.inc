@@ -20,6 +20,11 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
   protected $timeSkew;
 
   /**
+   * @var bool
+   */
+  protected $alreadyAccepted;
+
+  /**
    * @copydoc TfaBasePlugin::__construct()
    */
   public function __construct(array $context) {
@@ -29,6 +34,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
     $this->timeSkew = variable_get('tfa_basic_time_skew', 3);
     // Recommended: set variable tfa_totp_secret_key in settings.php.
     $this->encryptionKey = variable_get('tfa_basic_secret_key', drupal_get_private_key());
+    $this->alreadyAccepted = FALSE;
   }
 
   /**
@@ -64,9 +70,14 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
   public function validateForm(array $form, array &$form_state) {
     if (!$this->validate($form_state['values']['code'])) {
       $this->errorMessages['code'] = t('Invalid application code. Please try again.');
+      if ($this->alreadyAccepted) {
+        $this->errorMessages['code'] = t('Invalid code, it was recently used for a login. Please wait for the application to generate a new code.');
+      }
       return FALSE;
     }
     else {
+      // Store accepted code to prevent replay attacks.
+      $this->storeAcceptedCode($form_state['values']['code']);
       return TRUE;
     }
   }
@@ -75,12 +86,51 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
    * @copydoc TfaBasePlugin::validate()
    */
   protected function validate($code) {
-    // Get OTP seed.
-    $seed = $this->getSeed();
     // Strip whitespace.
     $code = preg_replace('/\s+/', '', $code);
-    $this->isValid = ($seed && $this->ga->verifyCode($seed, $code, $this->timeSkew));
+    if ($this->alreadyAcceptedCode($code)) {
+      $this->isValid = FALSE;
+    }
+    else {
+      // Get OTP seed.
+      $seed = $this->getSeed();
+      $this->isValid = ($seed && $this->ga->verifyCode($seed, $code, $this->timeSkew));
+    }
     return $this->isValid;
+  }
+
+  /**
+   * @param string $code
+   */
+  protected function storeAcceptedCode($code) {
+    $code = preg_replace('/\s+/', '', $code);
+    $hash = hash('sha1', drupal_get_hash_salt() . $code);
+    db_insert('tfa_accepted_code')
+      ->fields(array(
+        'uid' => $this->context['uid'],
+        'code_hash' => $hash,
+        'time_accepted' => REQUEST_TIME,
+      ))
+      ->execute();
+  }
+
+  /**
+   * Whether code has recently been accepted.
+   *
+   * @param string $code
+   * @return bool
+   */
+  protected function alreadyAcceptedCode($code) {
+    $hash = hash('sha1', drupal_get_hash_salt() . $code);
+    $result = db_query(
+      "SELECT code_hash FROM {tfa_accepted_code} WHERE uid = :uid AND code_hash = :code",
+      array(':uid' => $this->context['uid'], ':code' => $hash)
+    )->fetchAssoc();
+    if (!empty($result)) {
+      $this->alreadyAccepted = TRUE;
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
