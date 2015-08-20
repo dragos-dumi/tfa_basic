@@ -1,6 +1,11 @@
 <?php
 
-class TfaBasicSms extends TfaBasePlugin implements TfaValidationPluginInterface, TfaSendPluginInterface {
+namespace Drupal\tfa_base;
+
+use Drupal\tfa\TfaBasePlugin;
+use Drupal\tfa\TfaValidationInterface;
+
+class TfaBasicSms extends TfaBasePlugin implements TfaValidationInterface, TfaSendPluginInterface {
 
   protected $client;
 

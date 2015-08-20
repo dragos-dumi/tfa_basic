@@ -4,10 +4,15 @@
  * @file classes for tfa_totp
  */
 
+namespace Drupal\tfa_base;
+
+use Drupal\tfa\TfaBasePlugin;
+use Drupal\tfa\TfaValidationInterface;
+
 /**
  * Class TfaTotp
  */
-class TfaTotp extends TfaBasePlugin implements TfaValidationPluginInterface {
+class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
 
   /**
    * @var PHPGangsta_GoogleAuthenticator

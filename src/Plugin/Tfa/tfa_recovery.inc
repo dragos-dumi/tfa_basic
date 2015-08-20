@@ -4,10 +4,15 @@
  * @file class for TFA Basic
  */
 
+namespace Drupal\tfa_base;
+
+use Drupal\tfa\TfaBasePlugin;
+use Drupal\tfa\TfaValidationInterface;
+
 /**
  * Class TfaBasicRecoveryCode
  */
-class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationPluginInterface {
+class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterface {
 
   /**
    * @var string
