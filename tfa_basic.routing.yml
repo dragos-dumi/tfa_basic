@@ -7,4 +7,12 @@ tfa_basic.tfa:
     _permission: 'administer site configuration'
   options:
     _admin_route: TRUE
-
+tfa_basic.tfa.tfa_basic_setup:
+  path: 'user/{user}/security/tfa/app-setup'
+  defaults:
+    _form: 'Drupal\tfa_basic\Form\BasicSetup'
+    _title: 'TFA setup'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    _admin_route: TRUE

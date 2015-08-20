@@ -120,7 +120,7 @@ function tfa_basic_setup_access($account, $permission = '') {
  */
 function tfa_basic_cron() {
   // Delete trusted browser entries older than expiration.
-  $expiration = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30);
+//  $expiration = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30);
 
   $num_deleted = db_delete('tfa_trusted_browser')
     ->condition('created', REQUEST_TIME - $expiration, '<')
@@ -130,7 +130,7 @@ function tfa_basic_cron() {
   }
 
   // Delete accepted codes older than expiration.
-  $accepted_expiration = variable_get('tfa_basic_accepted_code_expiration', 3600 * 24);
+  //$accepted_expiration = variable_get('tfa_basic_accepted_code_expiration', 3600 * 24);
   db_delete('tfa_accepted_code')
     ->condition('time_accepted', REQUEST_TIME - $accepted_expiration, '<')
     ->execute();
@@ -357,8 +357,8 @@ function _tfa_basic_form_validate($form, &$form_state) {
  *   )
  * @endcode
  */
-function tfa_basic_get_tfa_data($account) {
-  $result = db_query("SELECT status, saved, data FROM {tfa_user_settings} WHERE uid = :uid", array(':uid' => $account->uid))->fetchAssoc();
+function tfa_basic_get_tfa_data($uid) {
+  $result = db_query("SELECT status, saved, data FROM {tfa_user_settings} WHERE uid = :uid", array(':uid' => $uid))->fetchAssoc();
   if (!empty($result)) {
     $data = array();
     if (!empty($result['data'])) {

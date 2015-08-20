@@ -39,7 +39,10 @@ class BasicOverview extends FormBase {
 
     if (!empty($user_tfa)) {
       if ($enabled) {
-        $status_text = t('Status: <strong>TFA enabled</strong>, set !time. <a href="!url">Disable TFA</a>', array('!time' => format_date($user_tfa['saved']), '!url' => url('user/' . $account->uid . '/security/tfa/disable')));
+        $status_text = t('Status: <strong>TFA enabled</strong>, set !time. <a href="!url">Disable TFA</a>', array(
+          '!time' => format_date($user_tfa['saved']),
+          '!url' => url('user/' . $user->id() . '/security/tfa/disable')
+        ));
       }
       else {
         $status_text = t('Status: <strong>TFA disabled</strong>, set !time.', array('!time' => format_date($user_tfa['saved'])));
@@ -49,8 +52,22 @@ class BasicOverview extends FormBase {
         '#markup' => '<p>' . $status_text . '</p>',
       );
     }
-    // TOTP setup.
-    $output['app'] = $this->tfa_basic_plugin_setup_form_overview('tfa_basic_totp', $account, $user_tfa);
+
+    if ($enabled) { //$todo (!$enabled)
+      $validate_plugin = \Drupal::config('node.settings')->get('tfa_validate_plugin'); //@todo
+      $output['setup'] = $this->tfa_basic_plugin_setup_form_overview($validate_plugin, $user, $user_tfa);
+    }
+    else {
+      // TOTP setup.
+      $output['app'] = $this->tfa_basic_plugin_setup_form_overview('tfa_basic_totp', $user, $user_tfa);
+      // SMS setup.
+      $output['sms'] = $this->tfa_basic_plugin_setup_form_overview('tfa_basic_sms', $user, $user_tfa);
+      // Trusted browsers.
+      $output['trust'] = $this->tfa_basic_plugin_setup_form_overview('tfa_basic_trusted_browser', $user, $user_tfa);
+      // Recovery codes.
+      $output['recovery'] = $this->tfa_basic_plugin_setup_form_overview('tfa_basic_recovery_code', $user, $user_tfa);
+    }
+
 
     return $output;
   }
@@ -92,7 +109,7 @@ class BasicOverview extends FormBase {
             '#links' => array(
               'admin' => array(
                 'title' => !$enabled ? t('Set up application') : t('Reset application'),
-                'url' => Url::fromRoute('system.admin'), //@todo l(user/' . $account->uid . '/security/tfa/app-setup')
+                'url' => Url::fromUri('base:user/' . $account->id() . '/security/tfa/app-setup'),
               ),
             ),
           ),
