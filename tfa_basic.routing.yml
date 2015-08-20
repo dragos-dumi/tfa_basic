@@ -1,0 +1,10 @@
+tfa_basic.tfa:
+  path: 'user/{user}/security/tfa'
+  defaults:
+    _form: 'Drupal\tfa_basic\Form\BasicOverview'
+    _title: 'Security'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    _admin_route: TRUE
+

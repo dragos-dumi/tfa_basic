@@ -1,0 +1,4 @@
+tfa_basic.tfa:
+  route_name: tfa_basic.tfa
+  base_route: entity.user.canonical
+  title: 'Security'
