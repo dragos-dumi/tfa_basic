@@ -4,26 +4,19 @@
  * @file class for TFA Basic
  */
 
-namespace Drupal\tfa_base;
+namespace Drupal\tfa_base\Plugin\TfaValidation;
 
-use Drupal\tfa\TfaBasePlugin;
-use Drupal\tfa\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaBasePlugin;
+use Drupal\tfa\Plugin\TfaValidationInterface;
 
 /**
- * Default plugin implementation of the Entity Reference Selection plugin.  <<<<<<================== FIX ME START!!
- *
- * Also serves as a base class for specific types of Entity Reference
- * Selection plugins.
- *
- * @TfaBasicHelp(
- *   id = "default",
- *   label = @Translation("Default"),
- *   group = "default",
- *   weight = 0,
- *   deriver = "Drupal\tfa_base\TfaBasicHelp"
+ * @TfaValidation(
+ *   id = "tfa_basic_help_validation",
+ *   label = @Translation("TFA Basic Help"),
+ *   description = @Translation("TFA Basic Help Plugin")
  * )
- */                                                                         //<<<<<<================== FIX ME END!!
-class TfaBasicHelp extends TfaBasePlugin implements TfaValidationInterface {
+ */
+class TfaBasicHelpValidation extends TfaBasePlugin implements TfaValidationInterface {
 
   /**
    * @copydoc TfaBasePlugin::getForm()
