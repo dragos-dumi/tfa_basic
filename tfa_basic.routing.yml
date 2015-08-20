@@ -4,15 +4,11 @@ tfa_basic.tfa:
     _form: 'Drupal\tfa_basic\Form\BasicOverview'
     _title: 'Security'
   requirements:
-    _permission: 'administer site configuration'
-  options:
-    _admin_route: TRUE
+    _permission: 'setup own tfa'
 tfa_basic.tfa.tfa_basic_setup:
   path: 'user/{user}/security/tfa/app-setup'
   defaults:
     _form: 'Drupal\tfa_basic\Form\BasicSetup'
     _title: 'TFA setup'
   requirements:
-    _permission: 'administer site configuration'
-  options:
-    _admin_route: TRUE
+    _permission: 'setup own tfa'

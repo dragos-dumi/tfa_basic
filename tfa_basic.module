@@ -1,18 +1,6 @@
 <?php
 
 /**
- * Implements hook_permission().
- */
-function tfa_basic_permission() {
-  return array(
-    'setup own tfa' => array(
-      'title' => t('Set up TFA for account'),
-      'description' => t('Allow users to set up TFA for their account. Users with "administer users" permission can edit other account\'s TFA.'),
-    ),
-  );
-}
-
-/**
  * Implements hook_library().
  */
 function tfa_basic_library() {
@@ -33,29 +21,10 @@ function tfa_basic_library() {
  */
 function tfa_basic_menu() {
   $items = array();
-
-  $items['user/%user/security/tfa'] = array(
-    'title' => 'Security',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('tfa_basic_overview', 1),
-    'access callback' => 'tfa_basic_setup_access',
-    'access arguments' => array(1, 'setup own tfa'),
-    'type' => MENU_LOCAL_TASK,
-    'file' => 'tfa_basic.pages.inc',
-  );
   $items['user/%user/security/tfa/disable'] = array(
     'title' => 'TFA disable',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('tfa_basic_disable_form', 1),
-    'access callback' => 'tfa_basic_setup_access',
-    'access arguments' => array(1, 'setup own tfa'),
-    'type' => MENU_CALLBACK,
-    'file' => 'tfa_basic.pages.inc',
-  );
-  $items['user/%user/security/tfa/app-setup'] = array(
-    'title' => 'TFA setup',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('tfa_basic_setup_form', 1, 'tfa_basic_totp'),
     'access callback' => 'tfa_basic_setup_access',
     'access arguments' => array(1, 'setup own tfa'),
     'type' => MENU_CALLBACK,
