@@ -1,7 +1,0 @@
-name: "TFA Basic Plugins"
-type: module
-description: "TFA plugins for Time-based One Time Passwords, Trusted Browsers, Recovery Codes, and Twilio SMS"
-core: 8.x
-version: VERSION
-dependencies:
- - tfa
