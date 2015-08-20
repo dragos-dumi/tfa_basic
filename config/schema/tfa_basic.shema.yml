@@ -1,0 +1,30 @@
+# Schema for the configuration files of the tfa_basic module.
+
+tfa_basic.settings:
+  type: mapping
+  label: 'TFA Basic settings'
+  mapping:
+    secret_key:
+      type: string
+      label: 'Secret key to to use as encryption key for TOTP seed encryption. Should be set in settings.php and not in the Drupal database.'
+    time_skew:
+      type: integer
+      label: 'Number of 30 second chunks to allow TOTP keys between.'
+    recovery_codes_amount:
+      type: integer
+      label: 'Recovery codes amount. Default is 10.'
+    trust_cookie_expiration:
+      type: integer
+      label: 'How long before TFA cookies expire. Default is 30 days.'
+    name_prefix:
+      type: string
+      label: 'Prefix for TOTP QR code names. Suffix is account username.'
+    cookie_name:
+      type: string
+      label: 'Cookie name of TFA trusted browser cookie. Default is "TB".'
+    twilio_account_sid:
+      type: string
+      label: 'Twilio account SID from twilio.com.'
+    twilio_account_token:
+      type: string
+      label: 'Private Twilio account token from twilio.com.'

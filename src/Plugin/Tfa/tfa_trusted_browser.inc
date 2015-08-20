@@ -4,10 +4,15 @@
  * @file classes for TFA basic plugin
  */
 
+namespace Drupal\tfa_base;
+
+use Drupal\tfa\TfaBasePlugin;
+use Drupal\tfa\TfaValidationInterface;
+
 /**
  * Class TfaTrustedBrowser
  */
-class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginPluginInterface {
+class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface {
 
   /**
    * @var bool
@@ -58,6 +63,12 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginPluginInterface
       '#description' => t('Not recommended if you are on a public or shared computer.'),
     );
     return $form;
+  }
+
+  /**
+   * @copydoc TfaValidationPluginInterface::validateForm()
+   */
+  public function validateForm(array $form, array &$form_state) {
   }
 
   /**
