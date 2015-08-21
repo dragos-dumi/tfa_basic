@@ -111,27 +111,6 @@ function tfa_basic_disable_form_submit($form, &$form_state) {
 }
 
 /**
- * Steps eligble for TFA Basic setup.
- */
-function _tfa_basic_full_setup_steps() {
-  $steps = array();
-  $plugins = array(
-    'tfa_basic_totp',
-    'tfa_basic_sms',
-    'tfa_basic_trusted_browser',
-    'tfa_basic_recovery_code',
-  );
-  foreach ($plugins as $plugin) {
-    if ($plugin === variable_get('tfa_validate_plugin', '') ||
-      in_array($plugin, variable_get('tfa_fallback_plugins', array())) ||
-      in_array($plugin, variable_get('tfa_login_plugins', array()))) {
-      $steps[] = $plugin;
-    }
-  }
-  return $steps;
-}
-
-/**
  * Set form rebuild, next step, and message if any plugin steps left.
  */
 function _tfa_basic_set_next_step(&$form_state, $this_step, $skipped_step = FALSE) {

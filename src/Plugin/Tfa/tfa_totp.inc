@@ -4,10 +4,11 @@
  * @file classes for tfa_totp
  */
 
-namespace Drupal\tfa_base;
+namespace Drupal\tfa_basic\Plugin\Tfa;
 
-use Drupal\tfa\TfaBasePlugin;
-use Drupal\tfa\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaBasePlugin;
+use Drupal\tfa\Plugin\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaSetupInterface;
 
 /**
  * Class TfaTotp
@@ -172,7 +173,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
 /**
  * Class TfaTotpSetup
  */
-class TfaTotpSetup extends TfaTotp implements TfaSetupPluginInterface {
+class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
 
   /**
    * @var string Un-encrypted seed.

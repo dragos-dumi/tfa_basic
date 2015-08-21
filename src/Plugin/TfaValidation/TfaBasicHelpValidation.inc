@@ -4,7 +4,7 @@
  * @file class for TFA Basic
  */
 
-namespace Drupal\tfa_base\Plugin\TfaValidation;
+namespace Drupal\tfa_basic\Plugin\TfaValidation;
 
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaValidationInterface;
