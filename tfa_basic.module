@@ -21,15 +21,6 @@ function tfa_basic_library() {
  */
 function tfa_basic_menu() {
   $items = array();
-  $items['user/%user/security/tfa/disable'] = array(
-    'title' => 'TFA disable',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('tfa_basic_disable_form', 1),
-    'access callback' => 'tfa_basic_setup_access',
-    'access arguments' => array(1, 'setup own tfa'),
-    'type' => MENU_CALLBACK,
-    'file' => 'tfa_basic.pages.inc',
-  );
   $items['user/%user/security/tfa/trusted-browsers'] = array(
     'title' => 'TFA setup',
     'page callback' => 'drupal_get_form',
@@ -225,7 +216,7 @@ function tfa_basic_tfa_ready_require($account) {
  */
 function tfa_basic_tfa_required($account) {
   $required = FALSE;
-  $required_roles = variable_get('tfa_basic_roles_require', array());
+  $required_roles = \Drupal::config('tfa_basic.settings')->get('roles_require');
   if (!empty($required_roles)) {
     foreach ($required_roles as $rid => $enabled) {
       if ($enabled && array_key_exists($rid, $account->roles)) {
@@ -381,16 +372,24 @@ function tfa_basic_setup_save_data($account, $data = array()) {
   }
 
   $record = array(
-    'uid' => $account->uid,
+    'uid' => $account->id(),
     'saved' => REQUEST_TIME,
     'status' => $status,
     'data' => json_encode($tfa_data),
   );
+  print_r($record);
   if (!empty($existing)) {
-    drupal_write_record('tfa_user_settings', $record, 'uid');
+//    drupal_write_record('tfa_user_settings', $record, 'uid');
+    \Drupal::database()->update('tfa_user_settings')
+      ->condition('uid', $record['uid'])
+      ->fields($record)
+      ->execute();
   }
   else {
-    drupal_write_record('tfa_user_settings', $record);
+//    drupal_write_record('tfa_user_settings', $record);
+    \Drupal::database()->insert('tfa_user_settings')
+      ->fields($record)
+      ->execute();
   }
 }
 

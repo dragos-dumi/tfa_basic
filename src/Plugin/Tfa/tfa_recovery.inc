@@ -152,7 +152,7 @@ class TfaBasicRecoveryCodeSetup extends TfaBasicRecoveryCode implements TfaSetup
   /**
    * @copydoc TfaSetupPluginInterface::getSetupForm()
    */
-  public function getSetupForm(array $form, array &$form_state) {
+  public function getSetupForm(array $form, FormStateInterface &$form_state) {
 
     $this->codes = $this->generateCodes();
 
@@ -174,7 +174,7 @@ class TfaBasicRecoveryCodeSetup extends TfaBasicRecoveryCode implements TfaSetup
   /**
    * @copydoc TfaSetupPluginInterface::validateSetupForm()
    */
-  public function validateSetupForm(array $form, array &$form_state) {
+  public function validateSetupForm(array $form, FormStateInterface &$form_state) {
     // Do nothing, TfaBasicRecoveryCodeSetup has no form inputs.
     return TRUE;
   }

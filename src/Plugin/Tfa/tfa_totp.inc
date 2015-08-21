@@ -9,6 +9,12 @@ namespace Drupal\tfa_basic\Plugin\Tfa;
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaValidationInterface;
 use Drupal\tfa\Plugin\TfaSetupInterface;
+use Drupal\tfa_basic\googleauthenticator\PHPGangsta_GoogleAuthenticator;
+use Drupal\Core\Url;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\user\Entity\User;
+
+require_once('modules/tfa_basic/src/googleauthenticator/GoogleAuthenticator.php');    // @todo: BAD developer!
 
 /**
  * Class TfaTotp
@@ -37,9 +43,9 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
     parent::__construct($context);
     $this->ga = new PHPGangsta_GoogleAuthenticator();
     // Allow codes within tolerance range of 3 * 30 second units.
-    $this->timeSkew = variable_get('tfa_basic_time_skew', 3);
+    $this->timeSkew = \Drupal::config('tfa_basic.settings')->get('time_skew');
     // Recommended: set variable tfa_totp_secret_key in settings.php.
-    $this->encryptionKey = variable_get('tfa_basic_secret_key', drupal_get_private_key());
+    $this->encryptionKey = \Drupal::config('tfa_basic.settings')->get('secret_key');
     $this->alreadyAccepted = FALSE;
   }
 
@@ -53,7 +59,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
   /**
    * @copydoc TfaValidationPluginInterface::getForm()
    */
-  public function getForm(array $form, array &$form_state) {
+  public function getForm(array $form, FormStateInterface &$form_state) {
     $form['code'] = array(
       '#type' => 'textfield',
       '#title' => t('Application verification code'),
@@ -73,8 +79,10 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
   /**
    * @copydoc TfaValidationPluginInterface::validateForm()
    */
-  public function validateForm(array $form, array &$form_state) {
-    if (!$this->validate($form_state['values']['code'])) {
+  public function validateForm(array $form, FormStateInterface &$form_state) {
+    $values = $form_state->getValues();
+    dpm($values);
+    if (!$this->validate($values['code'])) {
       $this->errorMessages['code'] = t('Invalid application code. Please try again.');
       if ($this->alreadyAccepted) {
         $this->errorMessages['code'] = t('Invalid code, it was recently used for a login. Please wait for the application to generate a new code.');
@@ -83,7 +91,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
     }
     else {
       // Store accepted code to prevent replay attacks.
-      $this->storeAcceptedCode($form_state['values']['code']);
+      $this->storeAcceptedCode($values['code']);
       return TRUE;
     }
   }
@@ -192,23 +200,24 @@ class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
     parent::__construct($context);
     // Generate seed.
     $this->seed = $this->createSeed();
-    $this->namePrefix = variable_get('tfa_basic_name_prefix', variable_get('site_name', 'Drupal'));
+    $this->namePrefix = \Drupal::config('tfa_basic.settings')->get('name_prefix');
   }
 
   /**
    * @copydoc TfaSetupPluginInterface::getSetupForm()
    */
-  public function getSetupForm(array $form, array &$form_state) {
-    $items = array(
-      l('Google Authenticator (Android/iPhone/BlackBerry)', 'https://support.google.com/accounts/answer/1066447?hl=en', array('attributes' => array('target'=>'_blank'))),
-      l('Authy (Android/iPhone)', 'https://www.authy.com/thefuture#install-now', array('attributes' => array('target'=>'_blank'))),
-      l('Authenticator (Windows Phone)', 'http://www.windowsphone.com/en-us/store/app/authenticator/021dd79f-0598-e011-986b-78e7d1fa76f8', array('attributes' => array('target'=>'_blank'))),
-      l('FreeOTP (Android)', 'https://play.google.com/store/apps/details?id=org.fedorahosted.freeotp', array('attributes' => array('target'=>'_blank'))),
-      l('GAuth Authenticator (desktop)', 'https://github.com/gbraad/html5-google-authenticator', array('attributes' => array('target'=>'_blank')))
-    );
+  public function getSetupForm(array $form, FormStateInterface &$form_state) {
+    $items = [
+      \Drupal::l('Google Authenticator (Android/iPhone/BlackBerry)', Url::fromUri('https://support.google.com/accounts/answer/1066447?hl=en'), array('attributes' => array('target'=>'_blank'))),
+      \Drupal::l('Authy (Android/iPhone)', Url::fromUri('https://www.authy.com/thefuture#install-now'), array('attributes' => array('target'=>'_blank'))),
+      \Drupal::l('Authenticator (Windows Phone)', Url::fromUri('http://www.windowsphone.com/en-us/store/app/authenticator/021dd79f-0598-e011-986b-78e7d1fa76f8'), array('attributes' => array('target'=>'_blank'))),
+      \Drupal::l('FreeOTP (Android)', Url::fromUri('https://play.google.com/store/apps/details?id=org.fedorahosted.freeotp'), array('attributes' => array('target'=>'_blank'))),
+      \Drupal::l('GAuth Authenticator (desktop)', Url::fromUri('https://github.com/gbraad/html5-google-authenticator'), array('attributes' => array('target'=>'_blank')))
+    ];
+    $markup = ['#theme' => 'item_list', 'items' => $items, 'title' => t('Install authentication code application on your mobile or desktop device:')];
     $form['apps'] = array(
       '#type' => 'markup',
-      '#markup' => theme('item_list', array('items' => $items, 'title' => t('Install authentication code application on your mobile or desktop device:'))),
+      '#markup' => \Drupal::service('renderer')->render($markup),
     );
     $form['info'] = array(
       '#type' => 'markup',
@@ -250,14 +259,13 @@ class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
   /**
    * @copydoc TfaSetupPluginInterface::validateSetupForm()
    */
-  public function validateSetupForm(array $form, array &$form_state) {
-    if (!$this->validate($form_state['values']['code'])) {
+  public function validateSetupForm(array $form, FormStateInterface &$form_state) {
+    if (!$this->validate($form_state->getValue('code'))) {
       $this->errorMessages['code'] = t('Invalid application code. Please try again.');
+//      $form_state->setErrorByName('code', $this->errorMessages['code']);
       return FALSE;
     }
-    else {
-      return TRUE;
-    }
+    return TRUE;
   }
 
   /**
@@ -270,7 +278,7 @@ class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
   /**
    * @copydoc TfaSetupPluginInterface::submitSetupForm()
    */
-  public function submitSetupForm(array $form, array &$form_state) {
+  public function submitSetupForm(array $form, FormStateInterface &$form_state) {
     // Write seed for user.
     $this->storeSeed($this->seed);
     return TRUE;
@@ -316,10 +324,15 @@ class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
     $existing = $this->getSeed();
     if (!empty($existing)) {
       // Update existing seed.
-      drupal_write_record('tfa_totp_seed', $record, 'uid');
+      \Drupal::database()->update('tfa_totp_seed')
+        ->condition('uid', $record['uid'])
+        ->fields($record)
+        ->execute();
     }
     else {
-      drupal_write_record('tfa_totp_seed', $record);
+      \Drupal::database()->insert('tfa_totp_seed')
+        ->fields($record)
+        ->execute();
     }
   }
 
@@ -329,8 +342,9 @@ class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
    * @return string URL encoded string.
    */
   protected function accountName() {
-    $account = user_load($this->context['uid']);
-    return urlencode($this->namePrefix . '-' . $account->name);
+    /** @var User $account */
+    $account =  User::load($this->context['uid']);
+    return urlencode($this->namePrefix . '-' . $account->getUsername());
   }
 
 }

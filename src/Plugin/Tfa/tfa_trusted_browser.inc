@@ -220,7 +220,7 @@ class TfaTrustedBrowserSetup extends TfaTrustedBrowser implements TfaSetupPlugin
   /**
    * @copydoc TfaSetupPluginInterface::getSetupForm()
    */
-  public function getSetupForm(array $form, array &$form_state) {
+  public function getSetupForm(array $form, FormStateInterface &$form_state) {
     $existing = $this->getTrustedBrowsers();
     $time = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30) / (3600 * 24);
     $form['info'] = array(
@@ -296,14 +296,14 @@ class TfaTrustedBrowserSetup extends TfaTrustedBrowser implements TfaSetupPlugin
   /**
    * @copydoc TfaSetupPluginInterface::validateSetupForm()
    */
-  public function validateSetupForm(array $form, array &$form_state) {
+  public function validateSetupForm(array $form, FormStateInterface &$form_state) {
     return TRUE; // Do nothing, no validation required.
   }
 
   /**
    * @copydoc TfaSetupPluginInterface::submitSetupForm()
    */
-  public function submitSetupForm(array $form, array &$form_state) {
+  public function submitSetupForm(array $form, FormStateInterface &$form_state) {
     if (isset($form_state['values']['existing'])) {
       $count = 0;
       foreach ($form_state['values']['existing'] as $element => $value) {

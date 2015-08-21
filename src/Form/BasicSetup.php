@@ -29,9 +29,9 @@ class BasicSetup extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, UserInterface $user = NULL, $method = 'tfa_basic_totp') {
+  public function buildForm(array $form, FormStateInterface $form_state, User $user = NULL, $method = 'tfa_basic_totp') {
 
-    $account = \Drupal::currentUser();
+    $account = User::load(\Drupal::currentUser()->id());
 
     $form['account'] = array(
       '#type' => 'value',
@@ -92,6 +92,7 @@ class BasicSetup extends FormBase {
       switch ($method) {
         case 'tfa_basic_totp':
           $form['#title'] = t('TFA setup - Application');
+          require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_totp.inc');    // @todo: BAD developer!
           $setup_plugin = new TfaTotpSetup($context);
           $tfa_setup = new TfaSetup($setup_plugin, $context);
 
@@ -210,6 +211,7 @@ class BasicSetup extends FormBase {
       $storage['step_method'] = $method;
     }
 
+    $form_state->setStorage($storage);
     return $form;
   }
 
@@ -217,7 +219,7 @@ class BasicSetup extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $user = \Drupal::currentUser();
+    $user = User::load(\Drupal::currentUser()->id());
     $storage = $form_state->getStorage();
     $values = $form_state->getValues();
     $account = $form['account']['#value'];
@@ -226,6 +228,11 @@ class BasicSetup extends FormBase {
       if ($account->id() != $user->id() && $user->hasPermission('administer users')) {
         $account = $user;
       }
+      $current_pass = \Drupal::service('password')->check(trim($form_state->getValue('current_pass')), $account->getPassword());
+      if (!$current_pass) {
+        $form_state->setErrorByName('current_pass', t("Incorrect password."));
+      }
+
       // Check password. (from user.module user_validate_current_pass()).
 //      require_once DRUPAL_ROOT . '/' . variable_get('password_inc', 'includes/password.inc');
 //      $current_pass = user_check_password($values['current_pass'], $account);
@@ -255,7 +262,8 @@ class BasicSetup extends FormBase {
       $tfa_setup = $storage[$method];
       if (!$tfa_setup->validateForm($form, $form_state)) {
         foreach ($tfa_setup->getErrorMessages() as $element => $message) {
-          form_set_error($element, $message);
+          $form_state->setErrorByName($element, $message);
+//          form_set_error($element, $message);
         }
       }
     }
@@ -330,7 +338,7 @@ class BasicSetup extends FormBase {
 
       // Trigger multi-step if in full setup.
       if (!empty($storage['full_setup'])) {
-        _tfa_basic_set_next_step($form_state, $method, $skipped_method);
+        $this->_tfa_basic_set_next_step($form_state, $method, $skipped_method);
       }
 
       // Plugin form submit.
@@ -356,12 +364,12 @@ class BasicSetup extends FormBase {
       }
 
       // Return if multi-step.
-      if (isset($form_state['rebuild']) && $form_state['rebuild']) {
+      if ($form_state->getRebuildInfo()) {
         return;
       }
       // Else, setup complete and return to overview page.
       drupal_set_message(t('TFA setup complete.'));
-      $form_state['redirect'] = 'user/' . $account->id() . '/security/tfa';
+      $form_state->setRedirectUrl(Url::fromUserInput('/user/' . $account->id() . '/security/tfa')); // @todo
 
       // Log and notify if this was full setup.
       if (!empty($storage['full_setup'])) {
@@ -369,12 +377,13 @@ class BasicSetup extends FormBase {
           'plugins' => array_diff($storage['steps'], $storage['steps_skipped']),
         );
         tfa_basic_setup_save_data($account, $data);
-        $params = array('account' => $account);
-        drupal_mail('tfa_basic', 'tfa_basic_tfa_enabled', $account->mail, user_preferred_language($account), $params);
-        watchdog('tfa_basic', 'TFA enabled for user @name UID !uid', array(
-          '@name' => $account->name,
-          '!uid' => $account->id(),
-        ), WATCHDOG_INFO);
+        // @todo
+//        $params = array('account' => $account);
+//        drupal_mail('tfa_basic', 'tfa_basic_tfa_enabled', $account->mail, user_preferred_language($account), $params);
+//        watchdog('tfa_basic', 'TFA enabled for user @name UID !uid', array(
+//          '@name' => $account->name,
+//          '!uid' => $account->id(),
+//        ), WATCHDOG_INFO);
       }
     }
   }
@@ -390,7 +399,7 @@ class BasicSetup extends FormBase {
       'tfa_basic_trusted_browser',
       'tfa_basic_recovery_code',
     );
-    $config = \Drupal::config('tfa.settings');
+    $config = \Drupal::config('tfa_basic.settings');
     foreach ($plugins as $plugin) {
       if ($plugin === $config->get('tfa_validate_plugin', '') ||
         in_array($plugin, $config->get('fallback_plugins', array())) ||
@@ -399,6 +408,53 @@ class BasicSetup extends FormBase {
       }
     }
     return $steps;
+  }
+
+  /**
+   * Set form rebuild, next step, and message if any plugin steps left.
+   */
+  private function _tfa_basic_set_next_step(FormStateInterface &$form_state, $this_step, $skipped_step = FALSE) {
+    $storage = $form_state->getStorage();
+    // Remove this step from steps left.
+    $storage['steps_left'] = array_diff($storage['steps_left'], array($this_step));
+    if (!empty($storage['steps_left'])) {
+      // Contextual reporting.
+      $output = FALSE;
+      switch ($this_step) {
+        case 'tfa_basic_totp':
+          $output = $skipped_step ? t('Application codes not enabled.') : t('Application code verified.');
+          break;
+
+        case 'tfa_basic_sms':
+          $output = $skipped_step ? t('SMS code delivery not enabled.') : t('SMS code verified.');
+          break;
+
+        case 'tfa_basic_trusted_browser':
+          // Handle whether the checkbox was unchecked.
+          if ($skipped_step || empty($form_state['values']['trust'])) {
+            $output = t('Browser not saved.');
+          }
+          else {
+            $output = t('Browser saved.');
+          }
+          break;
+
+        case 'tfa_basic_recovery_code':
+          $output = $skipped_step ? t('Recovery codes not saved.') : t('Saved recovery codes.');
+          break;
+      }
+      $count = count($storage['steps_left']);
+      $output .= ' ' . format_plural($count, 'One setup step remaining.', '@count TFA setup steps remain.', array('@count' => $count));
+      if ($output) {
+        drupal_set_message($output);
+      }
+
+      // Set next step and mark form for rebuild.
+      $next_step = array_shift($storage['steps_left']);
+      $storage['step_method'] = $next_step;
+      $form_state->setRebuild();
+    }
+    $form_state->setStorage($storage);
   }
 
 }

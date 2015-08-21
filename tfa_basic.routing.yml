@@ -12,3 +12,11 @@ tfa_basic.tfa.tfa_basic_setup:
     _title: 'TFA setup'
   requirements:
     _permission: 'setup own tfa'
+tfa_basic.tfa.disable:
+  path: 'user/{user}/security/tfa/disable'
+  defaults:
+    _form: 'Drupal\tfa_basic\Form\BasicDisable'
+    _title: 'TFA disable'
+  requirements:
+    _permission: 'setup own tfa'
+    user: \d+

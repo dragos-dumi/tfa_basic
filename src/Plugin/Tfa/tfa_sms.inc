@@ -176,7 +176,7 @@ class TfaBasicSmsSetup extends TfaBasicSms implements TfaSetupPluginInterface {
   /**
    * @copydoc TfaSetupPluginInterface::getSetupForm()
    */
-  public function getSetupForm(array $form, array &$form_state) {
+  public function getSetupForm(array $form, FormStateInterface &$form_state) {
     $form['sms_code'] = array(
       '#type' => 'textfield',
       '#title' => t('Verification Code'),
@@ -194,7 +194,7 @@ class TfaBasicSmsSetup extends TfaBasicSms implements TfaSetupPluginInterface {
   /**
    * @copydoc TfaSetupPluginInterface::validateSetupForm()
    */
-  public function validateSetupForm(array $form, array &$form_state) {
+  public function validateSetupForm(array $form, FormStateInterface &$form_state) {
     if (!$this->validate($form_state['values']['sms_code'])) {
       $this->errorMessages['sms_code'] = t('Invalid code. Please try again.');
       return FALSE;
@@ -207,7 +207,7 @@ class TfaBasicSmsSetup extends TfaBasicSms implements TfaSetupPluginInterface {
   /**
    * @copydoc TfaSetupPluginInterface::submitSetupForm()
    */
-  public function submitSetupForm(array $form, array &$form_state) {
+  public function submitSetupForm(array $form, FormStateInterface &$form_state) {
     // No submission handling required.
     return TRUE;
   }
