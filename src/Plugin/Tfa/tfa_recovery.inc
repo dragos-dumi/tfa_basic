@@ -4,10 +4,12 @@
  * @file class for TFA Basic
  */
 
-namespace Drupal\tfa_basic;
+namespace Drupal\tfa_basic\Plugin\Tfa;
 
-use Drupal\tfa\TfaBasePlugin;
-use Drupal\tfa\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaBasePlugin;
+use Drupal\tfa\Plugin\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaSetupInterface;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Class TfaBasicRecoveryCode
@@ -22,7 +24,7 @@ class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterfa
   public function __construct(array $context) {
     parent::__construct($context);
     // Set in settings.php.
-    $this->encryptionKey = variable_get('tfa_basic_secret_key', drupal_get_private_key());
+    $this->encryptionKey = \Drupal::config('tfa_basic.settings')->get('secret_key');
   }
 
   /**
@@ -36,7 +38,7 @@ class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterfa
   /**
    * @copydoc TfaBasePlugin::getForm()
    */
-  public function getForm(array $form, array &$form_state) {
+  public function getForm(array $form, FormStateInterface &$form_state) {
     $form['recover'] = array(
       '#type' => 'textfield',
       '#title' => t('Enter one of your recovery codes'),
@@ -55,7 +57,7 @@ class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterfa
   /**
    * @copydoc TfaBasePlugin::validateForm()
    */
-  public function validateForm(array $form, array &$form_state) {
+  public function validateForm(array $form, FormStateInterface &$form_state) {
     return $this->validate($form_state['values']['recover']);
   }
 
@@ -132,7 +134,7 @@ class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterfa
 /**
  * Class TfaBasicRecoveryCode
  */
-class TfaBasicRecoveryCodeSetup extends TfaBasicRecoveryCode implements TfaSetupPluginInterface {
+class TfaBasicRecoveryCodeSetup extends TfaBasicRecoveryCode implements TfaSetupInterface {
 
   /**
    * @var int
@@ -146,7 +148,7 @@ class TfaBasicRecoveryCodeSetup extends TfaBasicRecoveryCode implements TfaSetup
 
   public function __construct(array $context) {
     parent::__construct($context);
-    $this->codeLimit = variable_get('tfa_recovery_codes_amount', 10);
+    $this->codeLimit = \Drupal::config('tfa_basic.settings')->get('codes_amount');
   }
 
   /**
@@ -182,7 +184,7 @@ class TfaBasicRecoveryCodeSetup extends TfaBasicRecoveryCode implements TfaSetup
   /**
    * @copydoc TfaSetupPluginInterface::submitSetupForm()
    */
-  public function submitSetupForm(array $form, array &$form_state) {
+  public function submitSetupForm(array $form, FormStateInterface &$form_state) {
     $this->storeCodes($this->codes);
     return TRUE;
   }

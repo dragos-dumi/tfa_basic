@@ -13,6 +13,8 @@ use Drupal\Core\Url;
 use Drupal\tfa\TfaSetup;
 use Drupal\tfa_basic\Plugin\Tfa\TfaTotpSetup;
 use Drupal\user\Entity\User;
+use Drupal\tfa_basic\Plugin\Tfa\TfaBasicRecoveryCodeSetup;
+use Drupal\tfa_basic\Plugin\Tfa\TfaTrustedBrowserSetup;
 
 /**
  * TFA setup form router.

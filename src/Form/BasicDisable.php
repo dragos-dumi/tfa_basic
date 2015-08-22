@@ -11,8 +11,15 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\tfa\TfaSetup;
+use Drupal\tfa_basic\Plugin\Tfa\TfaTotp;
 use Drupal\tfa_basic\Plugin\Tfa\TfaTotpSetup;
 use Drupal\user\Entity\User;
+use Drupal\tfa_basic\Plugin\Tfa\TfaBasicRecoveryCodeSetup;
+use Drupal\tfa_basic\Plugin\Tfa\TfaTrustedBrowserSetup;
+
+require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_totp.inc');    // @todo: BAD developer!
+require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_recovery.inc');    // @todo: BAD developer!
+require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_trusted_browser.inc');    // @todo: BAD developer!
 
 
 /**
@@ -113,35 +120,40 @@ class BasicDisable extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $account = $form_state['storage']['account'];
-    if ($form_state['values']['op'] === $form_state['values']['cancel']) {
+    $storage = $form_state->getStorage();
+    $values = $form_state->getValues();
+    /** @var User $account */
+    $account = $storage['account'];
+    if ($values['op'] === $values['cancel']) {
       drupal_set_message(t('TFA disable canceled.'));
-      $form_state['redirect'] = 'user/' . $account->uid . '/security/tfa';
+      $form_state->setRedirect('tfa_basic.tfa', ['user' => $account->id()]);
       return;
     }
-    $params = array('account' => $account);
+
     tfa_basic_setup_save_data($account, array('status' => FALSE));
     // Delete TOTP code.
-    $totp = new TfaTotp(array('uid' => $account->uid));
+    $totp = new TfaTotp(array('uid' => $account->id()));
     $totp->deleteSeed();
     // Delete recovery codes.
-    $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->uid));
+    $recovery = new TfaBasicRecoveryCodeSetup(array('uid' => $account->id()));
     $recovery->deleteCodes();
     // Delete trusted browsers.
-    $trusted = new TfaTrustedBrowserSetup(array('uid' => $account->uid));
+    $trusted = new TfaTrustedBrowserSetup(array('uid' => $account->id()));
     $trusted->deleteTrustedBrowsers();
 
-    watchdog('tfa_basic', 'TFA disabled for user @name UID !uid', array(
-      '@name' => $account->name,
-      '!uid' => $account->uid,
-    ), WATCHDOG_NOTICE);
+    // @todo
+//    watchdog('tfa_basic', 'TFA disabled for user @name UID !uid', array(
+//      '@name' => $account->getUsername(),
+//      '!uid' => $account->id(),
+//    ), WATCHDOG_NOTICE);
 
+    // @todo
     // E-mail account to inform user that it has been disabled.
-    drupal_mail('tfa_basic', 'tfa_basic_disabled_configuration', $account->mail, user_preferred_language($account), $params);
+//    $params = array('account' => $account);
+//    drupal_mail('tfa_basic', 'tfa_basic_disabled_configuration', $account->getEmail(), user_preferred_language($account), $params);
 
     drupal_set_message(t('TFA has been disabled.'));
-    $form_state['redirect'] = 'user/' . $account->uid . '/security/tfa';
-
+    $form_state->setRedirect('tfa_basic.tfa', ['user' => $account->id()]);
   }
 
 }

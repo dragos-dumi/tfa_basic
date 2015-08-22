@@ -4,10 +4,12 @@
  * @file classes for TFA basic plugin
  */
 
-namespace Drupal\tfa_basic;
+namespace Drupal\tfa_basic\Plugin\Tfa;
 
-use Drupal\tfa\TfaBasePlugin;
-use Drupal\tfa\TfaValidationInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\tfa\Plugin\TfaBasePlugin;
+use Drupal\tfa\Plugin\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaSetupInterface;
 
 /**
  * Class TfaTrustedBrowser
@@ -36,10 +38,11 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface 
 
   public function __construct(array $context) {
     parent::__construct($context);
-    $this->cookieName = variable_get('tfa_basic_cookie_name', 'TB');
-    $this->domain = variable_get('tfa_basic_cookie_domain', '');
+    $config = \Drupal::config('tfa_basic.settings');
+    $this->cookieName = $config->get('cookie_name');
+    $this->domain = $config->get('cookie_domain');
     // Expiration defaults to 30 days.
-    $this->expiration = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30);
+    $this->expiration = $config->get('trust_cookie_expiration', 3600 * 24 * 30);
   }
 
   /**
@@ -56,7 +59,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface 
   /**
    * @copydoc TfaValidationPluginInterface::getForm()
    */
-  public function getForm(array $form, array &$form_state) {
+  public function getForm(array $form, FormStateInterface &$form_state) {
     $form['trust_browser'] = array(
       '#type' => 'checkbox',
       '#title' => t('Remember this browser?'),
@@ -68,13 +71,13 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface 
   /**
    * @copydoc TfaValidationPluginInterface::validateForm()
    */
-  public function validateForm(array $form, array &$form_state) {
+  public function validateForm(array $form, FormStateInterface &$form_state) {
   }
 
   /**
    * @copydoc TfaBasePlugin::submitForm()
    */
-  public function submitForm(array $form, array &$form_state) {
+  public function submitForm(array $form, FormStateInterface &$form_state) {
     if (isset($form_state['values']['trust_browser']) && $form_state['values']['trust_browser']) {
       $this->trustBrowser = TRUE;
     }
@@ -211,7 +214,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface 
 /**
  * Class TfaTrustedBrowserSetup
  */
-class TfaTrustedBrowserSetup extends TfaTrustedBrowser implements TfaSetupPluginInterface {
+class TfaTrustedBrowserSetup extends TfaTrustedBrowser implements TfaSetupInterface {
 
   public function __construct(array $context) {
     parent::__construct($context);

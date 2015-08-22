@@ -4,5 +4,7 @@ recovery_codes_amount: 10
 trust_cookie_expiration: 2592000
 name_prefix: ''
 cookie_name: 'TB'
+cookie_domain: ''
 twilio_account_sid: ''
 twilio_account_token: ''
+phone_field: ''
