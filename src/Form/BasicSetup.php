@@ -11,10 +11,10 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\tfa\TfaSetup;
-use Drupal\tfa_basic\Plugin\Tfa\TfaTotpSetup;
+use Drupal\tfa_basic\Plugin\TfaSetup\TfaTotpSetup;
 use Drupal\user\Entity\User;
-use Drupal\tfa_basic\Plugin\Tfa\TfaBasicRecoveryCodeSetup;
-use Drupal\tfa_basic\Plugin\Tfa\TfaTrustedBrowserSetup;
+use Drupal\tfa_basic\Plugin\TfaSetup\TfaBasicRecoveryCodeSetup;
+use Drupal\tfa_basic\Plugin\TfaSetup\TfaTrustedBrowserSetup;
 
 /**
  * TFA setup form router.
@@ -94,7 +94,6 @@ class BasicSetup extends FormBase {
       switch ($method) {
         case 'tfa_basic_totp':
           $form['#title'] = t('TFA setup - Application');
-          require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_totp.inc');    // @todo: BAD developer!
           $setup_plugin = new TfaTotpSetup($context);
           $tfa_setup = new TfaSetup($setup_plugin, $context);
 

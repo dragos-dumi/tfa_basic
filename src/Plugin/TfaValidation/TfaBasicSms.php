@@ -1,11 +1,18 @@
 <?php
 
-namespace Drupal\tfa_basic;
+use Drupal\tfa\Plugin\TfaBasePlugin;
+use Drupal\tfa\Plugin\TfaValidationInterface;
+use Drupal\tfa\Plugin\TfaSendInterface;
+use Drupal\Core\Form\FormStateInterface;
 
-use Drupal\tfa\TfaBasePlugin;
-use Drupal\tfa\TfaValidationInterface;
-
-class TfaBasicSms extends TfaBasePlugin implements TfaValidationInterface, TfaSendPluginInterface {
+/**
+ * @TfaValidation(
+ *   id = "tfa_basic_sms_validation",
+ *   label = @Translation("TFA SMS Validation"),
+ *   description = @Translation("TFA SMS Validation Plugin")
+ * )
+ */
+class TfaBasicSms extends TfaBasePlugin implements TfaValidationInterface, TfaSendInterface {
 
   protected $client;
 
@@ -152,64 +159,4 @@ class TfaBasicSms extends TfaBasePlugin implements TfaValidationInterface, TfaSe
       return FALSE;
     }
   }
-}
-
-/**
- * Class TfaBasicSmsSetup
- */
-class TfaBasicSmsSetup extends TfaBasicSms implements TfaSetupPluginInterface {
-
-  public function __construct(array $context, $mobile_number) {
-    parent::__construct($context, $mobile_number);
-  }
-
-  public function begin() {
-    if (empty($this->code)) {
-      $this->code = $this->generate();
-      if (!$this->sendCode($this->code)) {
-        // @todo decide on error text
-        $this->errorMessages[''] = t('Unable to deliver code to that number.');
-      }
-    }
-  }
-
-  /**
-   * @copydoc TfaSetupPluginInterface::getSetupForm()
-   */
-  public function getSetupForm(array $form, FormStateInterface &$form_state) {
-    $form['sms_code'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Verification Code'),
-      '#required' => TRUE,
-      '#description' => t('Enter @length-character code sent to your device.', array('@length' => $this->codeLength)),
-    );
-    $form['actions']['verify'] = array(
-      '#type' => 'submit',
-      '#value' => t('Verify and save'),
-    );
-
-    return $form;
-  }
-
-  /**
-   * @copydoc TfaSetupPluginInterface::validateSetupForm()
-   */
-  public function validateSetupForm(array $form, FormStateInterface &$form_state) {
-    if (!$this->validate($form_state['values']['sms_code'])) {
-      $this->errorMessages['sms_code'] = t('Invalid code. Please try again.');
-      return FALSE;
-    }
-    else {
-      return TRUE;
-    }
-  }
-
-  /**
-   * @copydoc TfaSetupPluginInterface::submitSetupForm()
-   */
-  public function submitSetupForm(array $form, FormStateInterface &$form_state) {
-    // No submission handling required.
-    return TRUE;
-  }
-
 }

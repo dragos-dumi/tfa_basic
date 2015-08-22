@@ -11,16 +11,10 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\tfa\TfaSetup;
-use Drupal\tfa_basic\Plugin\Tfa\TfaTotp;
-use Drupal\tfa_basic\Plugin\Tfa\TfaTotpSetup;
+use Drupal\tfa_basic\Plugin\TfaValidation\TfaTotp;
 use Drupal\user\Entity\User;
-use Drupal\tfa_basic\Plugin\Tfa\TfaBasicRecoveryCodeSetup;
-use Drupal\tfa_basic\Plugin\Tfa\TfaTrustedBrowserSetup;
-
-require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_totp.inc');    // @todo: BAD developer!
-require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_recovery.inc');    // @todo: BAD developer!
-require_once('modules/tfa_basic/src/Plugin/Tfa/tfa_trusted_browser.inc');    // @todo: BAD developer!
-
+use Drupal\tfa_basic\Plugin\TfaSetup\TfaBasicRecoveryCodeSetup;
+use Drupal\tfa_basic\Plugin\TfaSetup\TfaTrustedBrowserSetup;
 
 /**
  * TFA setup form router.
