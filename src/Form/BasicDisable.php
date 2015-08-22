@@ -9,7 +9,6 @@ namespace Drupal\tfa_basic\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\user\UserInterface;
 use Drupal\Core\Url;
 use Drupal\tfa\TfaSetup;
 use Drupal\tfa_basic\Plugin\Tfa\TfaTotpSetup;
