@@ -9,6 +9,8 @@
  * @link http://www.phpgangsta.de/
  */
 
+namespace Drupal\tfa_basic\googleauthenticator;
+
 class PHPGangsta_GoogleAuthenticator
 {
     protected $_codeLength = 6;

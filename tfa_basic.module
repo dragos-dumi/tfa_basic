@@ -1,5 +1,7 @@
 <?php
 
+use Drupal\user\Entity\User;
+
 /**
  * Implements hook_library().
  */
@@ -21,15 +23,6 @@ function tfa_basic_library() {
  */
 function tfa_basic_menu() {
   $items = array();
-  $items['user/%user/security/tfa/disable'] = array(
-    'title' => 'TFA disable',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('tfa_basic_disable_form', 1),
-    'access callback' => 'tfa_basic_setup_access',
-    'access arguments' => array(1, 'setup own tfa'),
-    'type' => MENU_CALLBACK,
-    'file' => 'tfa_basic.pages.inc',
-  );
   $items['user/%user/security/tfa/trusted-browsers'] = array(
     'title' => 'TFA setup',
     'page callback' => 'drupal_get_form',
@@ -184,8 +177,10 @@ function tfa_basic_tfa_context_alter(&$context) {
     return;
   }
 
-  $account = user_load($context['uid']);
-  $tfa_data = tfa_basic_get_tfa_data($account);
+  $account = User::load($context['uid']);
+  dpm($context);
+  print_r($context);
+  $tfa_data = tfa_basic_get_tfa_data($account->id());
   // Remove SMS plugin if enabled and mobile number is not available.
   $number = tfa_basic_get_mobile_number($account);
   if ((empty($tfa_data['data']['sms']) || !$number)) {
@@ -225,7 +220,7 @@ function tfa_basic_tfa_ready_require($account) {
  */
 function tfa_basic_tfa_required($account) {
   $required = FALSE;
-  $required_roles = variable_get('tfa_basic_roles_require', array());
+  $required_roles = \Drupal::config('tfa_basic.settings')->get('roles_require');
   if (!empty($required_roles)) {
     foreach ($required_roles as $rid => $enabled) {
       if ($enabled && array_key_exists($rid, $account->roles)) {
@@ -247,7 +242,7 @@ function tfa_basic_tfa_required($account) {
  *   Mobile phone number or FALSE if not set.
  */
 function tfa_basic_get_mobile_number($account) {
-  $phone_field = variable_get('tfa_basic_phone_field', '');
+  $phone_field = \Drupal::config('tfa_basic.settings')->get('phone_field');
   $number = FALSE;
   // Note, set tfa_basic_phone_field to FALSE to avoid using account field as
   // storage.
@@ -261,7 +256,7 @@ function tfa_basic_get_mobile_number($account) {
     'number' => $number,
   );
   // Allow other modules to supply the mobile number for this account.
-  drupal_alter('tfa_basic_get_mobile_number', $alterable);
+  \Drupal::moduleHandler()->alter('tfa_basic_get_mobile_number', $alterable);
   return $alterable['number'];
 }
 
@@ -286,7 +281,7 @@ function tfa_basic_set_mobile_number($account, $number) {
     'number' => $number,
   );
   // Allow other modules to set the mobile number for this account.
-  drupal_alter('tfa_basic_set_mobile_number', $alterable);
+  \Drupal::moduleHandler()->alter('tfa_basic_set_mobile_number', $alterable);
 }
 
 /**
@@ -358,7 +353,7 @@ function tfa_basic_get_tfa_data($uid) {
  */
 function tfa_basic_setup_save_data($account, $data = array()) {
   // Check if existing data and update.
-  $existing = tfa_basic_get_tfa_data($account);
+  $existing = tfa_basic_get_tfa_data($account->id());
   if (!empty($existing['data'])) {
     $tfa_data = $existing['data'];
   }
@@ -381,16 +376,25 @@ function tfa_basic_setup_save_data($account, $data = array()) {
   }
 
   $record = array(
-    'uid' => $account->uid,
+    'uid' => $account->id(),
     'saved' => REQUEST_TIME,
     'status' => $status,
     'data' => json_encode($tfa_data),
   );
+  print_r($record); // @todo
+  var_dump($existing);  // @todo
   if (!empty($existing)) {
-    drupal_write_record('tfa_user_settings', $record, 'uid');
+//    drupal_write_record('tfa_user_settings', $record, 'uid');
+    \Drupal::database()->update('tfa_user_settings')
+      ->condition('uid', $record['uid'])
+      ->fields($record)
+      ->execute();
   }
   else {
-    drupal_write_record('tfa_user_settings', $record);
+//    drupal_write_record('tfa_user_settings', $record);
+    \Drupal::database()->insert('tfa_user_settings')
+      ->fields($record)
+      ->execute();
   }
 }
 
@@ -421,7 +425,7 @@ function tfa_basic_valid_number($number) {
     'number' => $number,
     'errors' => $errors,
   );
-  drupal_alter('tfa_basic_valid_number', $errors);
+  \Drupal::moduleHandler()->alter('tfa_basic_valid_number', $errors);
   return $alterable['errors'];
 }
 
@@ -450,7 +454,7 @@ function tfa_basic_format_number($number) {
     'number' => $number,
     'formatted' => $formatted,
   );
-  drupal_alter('tfa_basic_format_number', $alterable);
+  \Drupal::moduleHandler()->alter('tfa_basic_format_number', $alterable);
   return $alterable['formatted'];
 }
 

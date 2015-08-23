@@ -41,7 +41,7 @@ class BasicOverview extends FormBase {
       if ($enabled) {
         $status_text = t('Status: <strong>TFA enabled</strong>, set !time. <a href="!url">Disable TFA</a>', array(
           '!time' => format_date($user_tfa['saved']),
-          '!url' => url('user/' . $user->id() . '/security/tfa/disable')
+          '!url' => URL::fromRoute('tfa_basic.tfa.disable', ['user' => $user->id()])->toString()
         ));
       }
       else {

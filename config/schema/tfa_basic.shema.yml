@@ -22,9 +22,15 @@ tfa_basic.settings:
     cookie_name:
       type: string
       label: 'Cookie name of TFA trusted browser cookie. Default is "TB".'
+    cookie_domain:
+      type: string
+      label: 'Cookie domain. Default is empty string.'
     twilio_account_sid:
       type: string
       label: 'Twilio account SID from twilio.com.'
     twilio_account_token:
       type: string
       label: 'Private Twilio account token from twilio.com.'
+    phone_field:
+      type: string
+      label: 'Phone field.'
