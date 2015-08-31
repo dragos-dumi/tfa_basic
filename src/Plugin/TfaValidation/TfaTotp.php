@@ -9,16 +9,17 @@ namespace Drupal\tfa_basic\Plugin\TfaValidation;
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaValidationInterface;
 use Drupal\tfa\Plugin\TfaSetupInterface;
-use Drupal\tfa_basic\googleauthenticator\PHPGangsta_GoogleAuthenticator;
+use Drupal\tfa_basic\GoogleAuthenticator\GoogleAuthenticator;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\user\Entity\User;
+use Drupal\Component\Utility\Crypt;
+use Drupal\Core\Site\Settings;
 
-require_once('modules/tfa_basic/src/googleauthenticator/GoogleAuthenticator.php');    // @todo: BAD developer!
 
 /**
  * @TfaValidation(
- *   id = "tfa_basic_totp_validation",
+ *   id = "tfa_basic_totp",
  *   label = @Translation("TFA Toptp Validation"),
  *   description = @Translation("TFA Toptp Validation Plugin")
  * )
@@ -45,7 +46,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
    */
   public function __construct(array $context) {
     parent::__construct($context);
-    $this->ga = new PHPGangsta_GoogleAuthenticator();
+    $this->ga = new GoogleAuthenticator();
     // Allow codes within tolerance range of 3 * 30 second units.
     $this->timeSkew = \Drupal::config('tfa_basic.settings')->get('time_skew');
     // Recommended: set variable tfa_totp_secret_key in settings.php.
@@ -63,7 +64,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
   /**
    * @copydoc TfaValidationPluginInterface::getForm()
    */
-  public function getForm(array $form, FormStateInterface &$form_state) {
+  public function getForm(array $form, FormStateInterface $form_state) {
     $form['code'] = array(
       '#type' => 'textfield',
       '#title' => t('Application verification code'),
@@ -83,9 +84,9 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
   /**
    * @copydoc TfaValidationPluginInterface::validateForm()
    */
-  public function validateForm(array $form, FormStateInterface &$form_state) {
+  public function validateForm(array $form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
-    dpm($values);
+    //dpm($values);
     if (!$this->validate($values['code'])) {
       $this->errorMessages['code'] = t('Invalid application code. Please try again.');
       if ($this->alreadyAccepted) {
@@ -122,7 +123,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
    */
   protected function storeAcceptedCode($code) {
     $code = preg_replace('/\s+/', '', $code);
-    $hash = hash('sha1', drupal_get_hash_salt() . $code);
+    $hash = hash('sha1', Settings::getHashSalt() . $code);
     db_insert('tfa_accepted_code')
       ->fields(array(
         'uid' => $this->context['uid'],
@@ -139,7 +140,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
    * @return bool
    */
   protected function alreadyAcceptedCode($code) {
-    $hash = hash('sha1', drupal_get_hash_salt() . $code);
+    $hash = hash('sha1', Settings::getHashSalt() . $code);
     $result = db_query(
       "SELECT code_hash FROM {tfa_accepted_code} WHERE uid = :uid AND code_hash = :code",
       array(':uid' => $this->context['uid'], ':code' => $hash)

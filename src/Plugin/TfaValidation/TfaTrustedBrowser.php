@@ -13,7 +13,7 @@ use Drupal\tfa\Plugin\TfaSetupInterface;
 
 /**
  * @TfaValidation(
- *   id = "tfa_basic_help_validation",
+ *   id = "tfa_basic_help",
  *   label = @Translation("TFA Basic Help"),
  *   description = @Translation("TFA Basic Help Plugin")
  * )
