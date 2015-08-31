@@ -13,7 +13,7 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * @TfaValidation(
- *   id = "tfa_basic_recovery_code_validation",
+ *   id = "tfa_basic_recovery_code",
  *   label = @Translation("TFA Recovery Code Validation"),
  *   description = @Translation("TFA Recovery Code Validation Plugin")
  * )

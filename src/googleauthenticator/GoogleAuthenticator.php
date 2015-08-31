@@ -2,6 +2,8 @@
 
 /**
  * PHP Class for handling Google Authenticator 2-factor authentication
+ * @file class for GoogleAuthenticator
+ *
  *
  * @author Michael Kliewe
  * @copyright 2012 Michael Kliewe
@@ -9,9 +11,9 @@
  * @link http://www.phpgangsta.de/
  */
 
-namespace Drupal\tfa_basic\googleauthenticator;
+namespace Drupal\tfa_basic\GoogleAuthenticator;
 
-class PHPGangsta_GoogleAuthenticator
+class GoogleAuthenticator
 {
     protected $_codeLength = 6;
 
