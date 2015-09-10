@@ -42,7 +42,7 @@ class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterfa
   /**
    * @copydoc TfaBasePlugin::getForm()
    */
-  public function getForm(array $form, FormStateInterface &$form_state) {
+  public function getForm(array $form, FormStateInterface $form_state) {
     $form['recover'] = array(
       '#type' => 'textfield',
       '#title' => t('Enter one of your recovery codes'),
@@ -61,7 +61,7 @@ class TfaBasicRecoveryCode extends TfaBasePlugin implements TfaValidationInterfa
   /**
    * @copydoc TfaBasePlugin::validateForm()
    */
-  public function validateForm(array $form, FormStateInterface &$form_state) {
+  public function validateForm(array $form, FormStateInterface $form_state) {
     return $this->validate($form_state['values']['recover']);
   }
 
