@@ -8,17 +8,18 @@ namespace Drupal\tfa_basic\Plugin\TfaValidation;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\tfa\Plugin\TfaBasePlugin;
+use Drupal\tfa\Plugin\TfaLoginInterface;
 use Drupal\tfa\Plugin\TfaValidationInterface;
 use Drupal\tfa\Plugin\TfaSetupInterface;
 
 /**
- * @TfaValidation(
- *   id = "tfa_basic_help",
- *   label = @Translation("TFA Basic Help"),
- *   description = @Translation("TFA Basic Help Plugin")
+ * @TfaLogin(
+ *   id = "tfa_trusted_browser",
+ *   label = @Translation("TFA Trusted Browser"),
+ *   description = @Translation("TFA Trusted Browser Plugin")
  * )
  */
-class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface {
+class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
 
   /**
    * @var bool
@@ -63,7 +64,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface 
   /**
    * @copydoc TfaValidationPluginInterface::getForm()
    */
-  public function getForm(array $form, FormStateInterface &$form_state) {
+  public function getForm(array $form, FormStateInterface $form_state) {
     $form['trust_browser'] = array(
       '#type' => 'checkbox',
       '#title' => t('Remember this browser?'),
@@ -75,7 +76,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaValidationInterface 
   /**
    * @copydoc TfaValidationPluginInterface::validateForm()
    */
-  public function validateForm(array $form, FormStateInterface &$form_state) {
+  public function validateForm(array $form, FormStateInterface $form_state) {
   }
 
   /**

@@ -41,6 +41,8 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
    */
   protected $alreadyAccepted;
 
+  protected $context;
+
   /**
    * @copydoc TfaBasePlugin::__construct()
    */
@@ -52,6 +54,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
     // Recommended: set variable tfa_totp_secret_key in settings.php.
     $this->encryptionKey = \Drupal::config('tfa_basic.settings')->get('secret_key');
     $this->alreadyAccepted = FALSE;
+    $this->context = $context;
   }
 
   /**
@@ -88,16 +91,14 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
     $values = $form_state->getValues();
     //dpm($values);
     if (!$this->validate($values['code'])) {
-      $this->errorMessages['code'] = t('Invalid application code. Please try again.');
+      $form_state->setErrorByName('code', t('Invalid application code. Please try again.'));
       if ($this->alreadyAccepted) {
-        $this->errorMessages['code'] = t('Invalid code, it was recently used for a login. Please wait for the application to generate a new code.');
+        $form_state->setErrorByName('code', t('Invalid code, it was recently used for a login. Please wait for the application to generate a new code.'));
       }
-      return FALSE;
     }
     else {
       // Store accepted code to prevent replay attacks.
       $this->storeAcceptedCode($values['code']);
-      return TRUE;
     }
   }
 
