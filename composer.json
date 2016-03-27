@@ -1,0 +1,9 @@
+{
+    "name": "drupal/tfa_basic",
+    "description": "Basic Authentication Plugin for TFA Module",
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev",
+    "require": {
+        "phpgangsta/googleauthenticator": "dev-master"
+    }
+}
