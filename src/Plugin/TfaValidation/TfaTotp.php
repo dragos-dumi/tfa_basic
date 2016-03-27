@@ -9,13 +9,12 @@ namespace Drupal\tfa_basic\Plugin\TfaValidation;
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaValidationInterface;
 use Drupal\tfa\Plugin\TfaSetupInterface;
-use Drupal\tfa_basic\GoogleAuthenticator\GoogleAuthenticator;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\user\Entity\User;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Site\Settings;
-
+use PHPGangsta_GoogleAuthenticator as GoogleAuthenticator;
 
 /**
  * @TfaValidation(
