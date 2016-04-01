@@ -70,7 +70,7 @@ class TfaTotp extends TfaBasePlugin implements TfaValidationInterface {
     $form['code'] = array(
       '#type' => 'textfield',
       '#title' => t('Application verification code'),
-      '#description' => t('Verification code is application generated and !length digits long.', array('!length' => $this->codeLength)),
+      '#description' => t('Verification code is application generated and @length digits long.', array('@length' => $this->codeLength)),
       '#required' => TRUE,
       '#attributes' => array('autocomplete' => 'off'),
     );
