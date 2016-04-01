@@ -34,3 +34,6 @@ tfa_basic.settings:
     phone_field:
       type: string
       label: 'Phone field.'
+    help_text:
+      type: string
+      label: 'Text to display on help page. Plain text only.'

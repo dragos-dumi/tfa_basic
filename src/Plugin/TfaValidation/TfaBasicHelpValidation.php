@@ -6,6 +6,7 @@
 
 namespace Drupal\tfa_basic\Plugin\TfaValidation;
 
+use Drupal\Component\Utility\Html;
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaValidationInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -22,12 +23,12 @@ class TfaBasicHelpValidation extends TfaBasePlugin implements TfaValidationInter
   /**
    * @copydoc TfaBasePlugin::getForm()
    */
-  public function getForm(array $form, FormStateInterface &$form_state) {
+  public function getForm(array $form, FormStateInterface $form_state) {
     $default = t('Contact support to reset your access');
-    $content = variable_get('tfa_basic_help_text', $default);
+    $content = \Drupal::config('tfa_basic.settings')->get('help_text');
     $form['help'] = array(
       '#type' => 'markup',
-      '#markup' => check_plain($content),
+      '#markup' => Html::escape($content),
     );
     // Disallow login plugins from applying to this step.
     $form['#tfa_no_login'] = TRUE;
@@ -37,7 +38,7 @@ class TfaBasicHelpValidation extends TfaBasePlugin implements TfaValidationInter
   /**
    * @copydoc TfaValidationPluginInterface::validateForm()
    */
-  public function validateForm(array $form, FormStateInterface &$form_state) {
+  public function validateForm(array $form, FormStateInterface $form_state) {
     // Unused.
   }
 

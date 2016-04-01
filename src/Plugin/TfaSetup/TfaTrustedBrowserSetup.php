@@ -2,6 +2,7 @@
 
 namespace Drupal\tfa_basic\Plugin\TfaSetup;
 
+use Drupal\Component\Utility\Html;
 use Drupal\tfa\Plugin\TfaSetupInterface;
 use Drupal\tfa_basic\Plugin\TfaValidation\TfaTrustedBrowser;
 use Drupal\Core\Url;
@@ -26,10 +27,10 @@ class TfaTrustedBrowserSetup extends TfaTrustedBrowser implements TfaSetupInterf
    */
   public function getSetupForm(array $form, FormStateInterface &$form_state) {
     $existing = $this->getTrustedBrowsers();
-    $time = variable_get('tfa_basic_trust_cookie_expiration', 3600 * 24 * 30) / (3600 * 24);
+    $time = \Drupal::config('tfa_basic.settings')->get('trust_cookie_expiration');
     $form['info'] = array(
       '#type' => 'markup',
-      '#markup' => '<p>' . t("Trusted browsers are a method for simplifying login by avoiding verification code entry for a set amount of time, !time days from marking a browser as trusted. After !time days, to log in you'll need to enter a verification code with your username and password during which you can again mark the browser as trusted.", array('!time' => $time)) . '</p>',
+      '#markup' => '<p>' . t("Trusted browsers are a method for simplifying login by avoiding verification code entry for a set amount of time, @time days from marking a browser as trusted. After !time days, to log in you'll need to enter a verification code with your username and password during which you can again mark the browser as trusted.", array('@time' => $time)) . '</p>',
     );
     // Present option to trust this browser if its not currently trusted.
     if (isset($_COOKIE[$this->cookieName]) && ($browser_id = $this->trustedBrowser($_COOKIE[$this->cookieName])) !== FALSE) {
@@ -73,7 +74,7 @@ class TfaTrustedBrowserSetup extends TfaTrustedBrowser implements TfaSetupInterf
           $name = '<strong>' . t('@name (current browser)', array('@name' => $browser['name'])) . '</strong>';
         }
         else {
-          $name = check_plain($browser['name']);
+          $name = Html::escape($browser['name']);
         }
         if (empty($browser['last_used'])) {
           $message = t('Marked trusted !set', $vars);

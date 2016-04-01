@@ -2,6 +2,7 @@
 
 namespace Drupal\tfa_basic\Plugin\TfaSetup;
 
+use Drupal\Core\Link;
 use Drupal\tfa\Plugin\TfaSetupInterface;
 use Drupal\tfa_basic\Plugin\TfaValidation\TfaTotp;
 use Drupal\Core\Url;
@@ -42,13 +43,13 @@ class TfaTotpSetup extends TfaTotp implements TfaSetupInterface {
    */
   public function getSetupForm(array $form, FormStateInterface &$form_state) {
     $items = [
-      \Drupal::l('Google Authenticator (Android/iPhone/BlackBerry)', Url::fromUri('https://support.google.com/accounts/answer/1066447?hl=en'), array('attributes' => array('target'=>'_blank'))),
-      \Drupal::l('Authy (Android/iPhone)', Url::fromUri('https://www.authy.com/thefuture#install-now'), array('attributes' => array('target'=>'_blank'))),
-      \Drupal::l('Authenticator (Windows Phone)', Url::fromUri('http://www.windowsphone.com/en-us/store/app/authenticator/021dd79f-0598-e011-986b-78e7d1fa76f8'), array('attributes' => array('target'=>'_blank'))),
-      \Drupal::l('FreeOTP (Android)', Url::fromUri('https://play.google.com/store/apps/details?id=org.fedorahosted.freeotp'), array('attributes' => array('target'=>'_blank'))),
-      \Drupal::l('GAuth Authenticator (desktop)', Url::fromUri('https://github.com/gbraad/html5-google-authenticator'), array('attributes' => array('target'=>'_blank')))
+      Link::fromTextAndUrl('Google Authenticator (Android/iPhone/BlackBerry)', Url::fromUri('https://support.google.com/accounts/answer/1066447?hl=en', array('attributes' => array('target'=>'_blank')))),
+      Link::fromTextAndUrl('Authy (Android/iPhone)', Url::fromUri('https://www.authy.com/thefuture#install-now', array('attributes' => array('target'=>'_blank')))),
+      Link::fromTextAndUrl('Authenticator (Windows Phone)', Url::fromUri('http://www.windowsphone.com/en-us/store/app/authenticator/021dd79f-0598-e011-986b-78e7d1fa76f8', array('attributes' => array('target'=>'_blank')))),
+      Link::fromTextAndUrl('FreeOTP (Android)', Url::fromUri('https://play.google.com/store/apps/details?id=org.fedorahosted.freeotp', array('attributes' => array('target'=>'_blank')))),
+      Link::fromTextAndUrl('GAuth Authenticator (desktop)', Url::fromUri('https://github.com/gbraad/html5-google-authenticator', array('attributes' => array('target'=>'_blank'))))
     ];
-    $markup = ['#theme' => 'item_list', 'items' => $items, 'title' => t('Install authentication code application on your mobile or desktop device:')];
+    $markup = ['#theme' => 'item_list', '#items' => $items, '#title' => t('Install authentication code application on your mobile or desktop device:')];
     $form['apps'] = array(
       '#type' => 'markup',
       '#markup' => \Drupal::service('renderer')->render($markup),
