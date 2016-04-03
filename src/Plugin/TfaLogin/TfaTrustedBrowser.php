@@ -4,13 +4,11 @@
  * @file classes for TFA basic plugin
  */
 
-namespace Drupal\tfa_basic\Plugin\TfaValidation;
+namespace Drupal\tfa_basic\Plugin\TfaLogin;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaLoginInterface;
-use Drupal\tfa\Plugin\TfaValidationInterface;
-use Drupal\tfa\Plugin\TfaSetupInterface;
 
 /**
  * @TfaLogin(
@@ -82,8 +80,9 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
   /**
    * @copydoc TfaBasePlugin::submitForm()
    */
-  public function submitForm(array $form, FormStateInterface &$form_state) {
-    if (isset($form_state['values']['trust_browser']) && $form_state['values']['trust_browser']) {
+  public function submitForm(array $form, FormStateInterface $form_state) {
+    $trust_browser = $form_state->getValue('trust_browser');
+    if (!empty($trust_browser)) {
       $this->trustBrowser = TRUE;
     }
     else {
