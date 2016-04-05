@@ -9,6 +9,7 @@ namespace Drupal\tfa_basic\Plugin\TfaLogin;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\tfa\Plugin\TfaBasePlugin;
 use Drupal\tfa\Plugin\TfaLoginInterface;
+use Drupal\Component\Utility\Crypt;
 
 /**
  * @TfaLogin(
@@ -39,6 +40,8 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
    */
   protected $expiration;
 
+  protected $database;
+
   public function __construct(array $context) {
     parent::__construct($context);
     $config = \Drupal::config('tfa_basic.settings');
@@ -46,6 +49,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
     $this->domain = $config->get('cookie_domain');
     // Expiration defaults to 30 days.
     $this->expiration = $config->get('trust_cookie_expiration', 3600 * 24 * 30);
+    $this->database = \Drupal::database();
   }
 
   /**
@@ -106,7 +110,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
    * @return string
    */
   protected function generateBrowserId() {
-    $id = base64_encode(drupal_random_bytes(32));
+    $id = base64_encode(Crypt::randomBytes(32));
     return strtr($id, array('+' => '-', '/' => '_', '=' => ''));
   }
 
@@ -122,16 +126,20 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
       'uid' => $this->context['uid'],
       'value' => $value,
       'created' => REQUEST_TIME,
-      'ip' => ip_address(),
+      'ip' => \Drupal::request()->getClientIp(),
       'name' => $name,
     );
-    drupal_write_record('tfa_trusted_browser', $record);
+
+    $this->database->insert('tfa_trusted_browser', $record)
+      ->fields($record)
+      ->execute();
     // Issue cookie with ID.
     $cookie_secure = ini_get('session.cookie_secure');
     $expiration = REQUEST_TIME + $this->expiration;
     setcookie($this->cookieName, $value, $expiration, '/', $this->domain, (empty($cookie_secure) ? FALSE : TRUE), TRUE);
     $name = empty($name) ? $this->getAgent() : $name;
-    watchdog('tfa_basic', 'Set trusted browser for user UID !uid, browser @name', array('@name' => $name, '!uid' => $this->context['uid']), WATCHDOG_INFO);
+    // TODO - use services defined in module instead this procedural way.
+    \Drupal::logger('tfa_basic')->info('Set trusted browser for user UID !uid, browser @name', array('@name' => $name, '!uid' => $this->context['uid']));
   }
 
   /**
@@ -142,10 +150,12 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
    */
   protected function setUsed($did) {
     $record = array(
-      'did' => $did,
       'last_used' => REQUEST_TIME,
     );
-    drupal_write_record('tfa_trusted_browser', $record, 'did');
+    $this->database->update('tfa_trusted_browser')
+      ->fields($record)
+      ->condition('did', $did)
+      ->execute();
   }
 
   /**
@@ -157,8 +167,13 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
    */
   protected function trustedBrowser($value) {
     // Check if $id has been saved for this user.
-    $result = db_query("SELECT did FROM {tfa_trusted_browser} WHERE value = :value AND uid = :uid", array(':value' => $value, ':uid' => $this->context['uid']))->fetchAssoc();
-    if (!empty($result)) {
+    $query = $this->database->select('tfa_trusted_browser', 'tb', array('fetch' => \PDO::FETCH_ASSOC))
+      ->fields('tb')
+      ->condition('value', $value)
+      ->condition('uid', $this->context['uid']);
+    $result = $query->execute()->fetch();
+
+    if (!empty($result['did'])) {
       return $result['did'];
     }
     return FALSE;
@@ -173,7 +188,7 @@ class TfaTrustedBrowser extends TfaBasePlugin implements TfaLoginInterface {
    * @return int
    */
   protected function deleteTrusted($did = NULL) {
-    $query = db_delete('tfa_trusted_browser')
+    $query = $this->database->delete('tfa_trusted_browser')
       ->condition('uid', $this->context['uid']);
     if (is_int($did)) {
       $query->condition('did', $did);
